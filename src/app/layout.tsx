@@ -14,11 +14,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en">
       <body className="min-h-screen">
+        {process.env.STRIPE_SECRET_KEY?.startsWith("sk_test") || !process.env.STRIPE_SECRET_KEY ? (
+          <div className="bg-amber-100 py-1 text-center text-xs text-amber-900">Test mode: no real payments are taken.</div>
+        ) : null}
         <header className="border-b border-stone-200 bg-white">
           <nav className="container-page flex h-16 items-center justify-between gap-4">
             <Link href="/" className="text-lg font-bold text-brand-700">TutConnect</Link>
             <div className="flex items-center gap-4 text-sm">
               <Link href="/tutors" className="hover:text-brand-600">Find a tutor</Link>
+              <Link href="/how-it-works" className="hidden hover:text-brand-600 sm:inline">How it works</Link>
               {!user && <Link href="/signup?role=TUTOR" className="hover:text-brand-600">Teach with us</Link>}
               {user?.role === "TUTOR" && <Link href="/apply" className="hover:text-brand-600">My application</Link>}
               {user?.role === "ADMIN" && <Link href="/admin" className="hover:text-brand-600">Admin</Link>}
@@ -39,8 +43,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           </nav>
         </header>
         <main className="container-page py-10">{children}</main>
-        <footer className="border-t border-stone-200 py-8 text-center muted">
-          TutConnect · Languages only · 1% fee on a tutor&apos;s first 5 classes, 5% after
+        <footer className="border-t border-stone-200 py-8 text-center muted space-y-2">
+          <p>TutConnect · Languages only · 1% fee on a tutor&apos;s first 5 lessons, 5% after · No subscriptions</p>
+          <p className="space-x-4">
+            <Link href="/how-it-works" className="underline">How it works</Link>
+            <Link href="/compare/preply" className="underline">TutConnect vs Preply</Link>
+            <Link href="/terms" className="underline">Terms</Link>
+            <Link href="/privacy" className="underline">Privacy</Link>
+          </p>
         </footer>
       </body>
     </html>

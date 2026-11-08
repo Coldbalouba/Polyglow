@@ -23,6 +23,10 @@ export default async function SignupPage({ searchParams }: { searchParams: Searc
         <div><label className="label" htmlFor="name">Full name</label><input className="input" id="name" name="name" required /></div>
         <div><label className="label" htmlFor="email">Email</label><input className="input" id="email" name="email" type="email" required /></div>
         <div><label className="label" htmlFor="password">Password</label><input className="input" id="password" name="password" type="password" minLength={8} required /></div>
+        <label className="flex items-start gap-2 text-sm">
+          <input type="checkbox" name="terms" required className="mt-1" />
+          <span>I agree to the <Link className="text-brand-600 underline" href="/terms" target="_blank">Terms</Link> and <Link className="text-brand-600 underline" href="/privacy" target="_blank">Privacy Policy</Link>.</span>
+        </label>
         <button className="btn w-full">Create account</button>
       </form>
       <p className="muted mt-4">Already have an account? <Link className="text-brand-600 underline" href="/login">Log in</Link></p>

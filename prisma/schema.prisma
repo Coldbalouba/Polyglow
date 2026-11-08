@@ -1,18 +1,17 @@
-// TutConnect data model.
-// SQLite is used for zero-setup local development. To use Postgres, change
-// `provider` to "postgresql" and point DATABASE_URL at your database.
+// TutConnect data model (PostgreSQL: Neon free tier in production, any Postgres locally).
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"] // rhel target = Netlify/AWS Lambda runtime
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
-// Enum-like string fields (SQLite has no native enums). Allowed values are
-// defined in src/lib/constants.ts.
+// String "enums" keep migrations simple; allowed values live in src/lib/constants.ts.
 
 model User {
   id           String   @id @default(cuid())
@@ -23,9 +22,12 @@ model User {
   createdAt    DateTime @default(now())
 
   sessions        Session[]
+  resetTokens     PasswordResetToken[]
   tutorProfile    TutorProfile?
-  studentBookings Booking[]     @relation("StudentBookings")
-  reviewsWritten  Review[]      @relation("ReviewAuthor")
+  studentBookings Booking[]            @relation("StudentBookings")
+  reviewsWritten  Review[]             @relation("ReviewAuthor")
+  messages        Message[]
+  disputesOpened  Dispute[]
 }
 
 model Session {
@@ -33,21 +35,37 @@ model Session {
   userId    String
   expiresAt DateTime
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  tokenHash String    @unique // sha256 of the token emailed to the user
+  userId    String
+  expiresAt DateTime
+  usedAt    DateTime?
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model TutorProfile {
-  id              String   @id @default(cuid())
-  userId          String   @unique
-  headline        String   @default("")
-  bio             String   @default("")
-  country         String   @default("")
-  hourlyRateCents Int      @default(2000)
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  headline             String   @default("")
+  bio                  String   @default("")
+  country              String   @default("")
+  hourlyRateCents      Int      @default(2000)
+  // Trial lesson: null = no special trial price (first lesson at the normal price).
+  // 0 = free trial (tutor's choice). The tutor is always paid for paid trials.
+  trialPriceCents      Int?
+  // Optional personal Zoom/Meet link. Otherwise each booking gets a free Jitsi room.
+  meetingLink          String?
   // DRAFT -> SUBMITTED -> APPROVED | REJECTED. Only APPROVED tutors are listed.
-  status          String   @default("DRAFT")
-  // Stripe Connect account id once payouts are set up (stubbed in MVP).
-  stripeAccountId String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  status               String   @default("DRAFT")
+  stripeAccountId      String?  @unique
+  stripeChargesEnabled Boolean  @default(false)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
   user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   languages   TutorLanguage[]
@@ -59,7 +77,7 @@ model TutorProfile {
 model TutorLanguage {
   id       String       @id @default(cuid())
   tutorId  String
-  language String // e.g. "Spanish"
+  language String
   level    String // NATIVE | C2 | C1
   tutor    TutorProfile @relation(fields: [tutorId], references: [id], onDelete: Cascade)
 
@@ -69,23 +87,19 @@ model TutorLanguage {
 model TutorApplication {
   id                 String    @id @default(cuid())
   tutorId            String    @unique
-  // Step 1: resume
   resumeFileName     String?
-  resumePath         String?
-  // Step 2: skill check (auto-scored methodology quiz + written sample in the target language)
-  skillCheckScore    Int? // percentage 0-100
+  resumeMime         String?
+  resumeData         Bytes? // stored in Postgres so no paid file storage is needed (max 3 MB)
+  skillCheckScore    Int?
   skillCheckPassed   Boolean   @default(false)
   writingSample      String?
-  // Step 3: AI-assisted lesson plan
   lessonPlanTitle    String?
   lessonPlan         String?
-  lessonPlanAiTool   String? // which AI tool produced the first draft
-  // Review
+  lessonPlanAiTool   String?
   status             String    @default("IN_PROGRESS") // IN_PROGRESS | SUBMITTED | APPROVED | REJECTED
   submittedAt        DateTime?
   reviewedAt         DateTime?
   reviewerNotes      String?
-  // Admin checklist for the human part of the vetting
   resumeVerified     Boolean   @default(false)
   liveCheckPassed    Boolean   @default(false)
   lessonPlanApproved Boolean   @default(false)
@@ -106,39 +120,81 @@ model AvailabilitySlot {
 }
 
 model Booking {
-  id               String    @id @default(cuid())
-  studentId        String
-  tutorId          String
-  slotId           String
-  language         String
-  startsAt         DateTime
-  durationMin      Int
-  // Money, all in cents. The student pays priceCents; the platform fee is
-  // taken out of the tutor's share, never added on top for the student.
-  priceCents       Int
-  feeRateBps       Int // basis points: 100 = 1%, 500 = 5%
-  platformFeeCents Int
-  tutorPayoutCents Int
-  // PENDING_PAYMENT -> CONFIRMED -> COMPLETED, or CANCELLED
-  status           String    @default("PENDING_PAYMENT")
-  paymentRef       String?
-  createdAt        DateTime  @default(now())
-  completedAt      DateTime?
+  id                String    @id @default(cuid())
+  studentId         String
+  tutorId           String
+  slotId            String
+  language          String
+  isTrial           Boolean   @default(false)
+  startsAt          DateTime
+  durationMin       Int
+  // Money in cents. Student pays priceCents and nothing on top. The platform fee
+  // comes out of the tutor's share.
+  priceCents        Int
+  feeRateBps        Int
+  platformFeeCents  Int
+  tutorPayoutCents  Int
+  refundedCents     Int       @default(0)
+  // PENDING_PAYMENT -> CONFIRMED -> COMPLETED
+  // or CANCELLED (refunded), LATE_CANCELLED (student cancelled late, tutor keeps payment),
+  // DISPUTED (student reported a problem; admin decides).
+  status            String    @default("PENDING_PAYMENT")
+  cancelledBy       String? // STUDENT | TUTOR | SYSTEM | ADMIN
+  checkoutSessionId String?   @unique
+  paymentIntentId   String?
+  applicationFeeId  String?
+  paymentRef        String? // mock-mode reference
+  meetingUrl        String?
+  reminderSentAt    DateTime?
+  createdAt         DateTime  @default(now())
+  confirmedAt       DateTime?
+  completedAt       DateTime?
 
-  student User             @relation("StudentBookings", fields: [studentId], references: [id])
-  tutor   TutorProfile     @relation(fields: [tutorId], references: [id])
-  slot    AvailabilitySlot @relation(fields: [slotId], references: [id])
-  review  Review?
+  student  User             @relation("StudentBookings", fields: [studentId], references: [id])
+  tutor    TutorProfile     @relation(fields: [tutorId], references: [id])
+  slot     AvailabilitySlot @relation(fields: [slotId], references: [id])
+  review   Review?
+  dispute  Dispute?
+  messages Message[]
 
   @@index([tutorId, status])
   @@index([studentId])
+  @@index([status, startsAt])
+}
+
+model Dispute {
+  id             String    @id @default(cuid())
+  bookingId      String    @unique
+  openedById     String
+  reason         String // TUTOR_NO_SHOW | TECHNICAL | QUALITY | OTHER
+  details        String    @default("")
+  status         String    @default("OPEN") // OPEN | REFUNDED | RELEASED
+  resolutionNote String?
+  createdAt      DateTime  @default(now())
+  resolvedAt     DateTime?
+
+  booking  Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  openedBy User    @relation(fields: [openedById], references: [id])
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  bookingId String
+  authorId  String
+  body      String
+  createdAt DateTime @default(now())
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  author  User    @relation(fields: [authorId], references: [id])
+
+  @@index([bookingId, createdAt])
 }
 
 model Review {
   id        String   @id @default(cuid())
   bookingId String   @unique
   authorId  String
-  rating    Int // 1-5
+  rating    Int
   comment   String   @default("")
   createdAt DateTime @default(now())
 

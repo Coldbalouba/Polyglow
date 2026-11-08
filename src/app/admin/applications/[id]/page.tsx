@@ -12,6 +12,7 @@ export default async function ReviewPage({ params, searchParams }: { params: Pro
   const sp = await searchParams;
   const app = await prisma.tutorApplication.findUnique({
     where: { id },
+    omit: { resumeData: true },
     include: { tutor: { include: { user: true, languages: true } } },
   });
   if (!app) notFound();
@@ -39,7 +40,7 @@ export default async function ReviewPage({ params, searchParams }: { params: Pro
           </section>
           <section className="card space-y-2">
             <h2 className="h2">Resume</h2>
-            {app.resumePath ? (
+            {app.resumeFileName ? (
               <a className="text-brand-600 underline" href={`/admin/resume/${app.id}`}>Download {app.resumeFileName}</a>
             ) : <p className="muted">No resume uploaded.</p>}
           </section>

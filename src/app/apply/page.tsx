@@ -18,6 +18,7 @@ export default async function ApplyPage({ searchParams }: { searchParams: Search
   const { profile, application } = ctx;
   const steps = applicationSteps(snapshotOf(ctx));
   const editable = isEditable(application.status);
+  const profileEditable = editable || application.status === "APPROVED";
   const ready = steps.every((s) => s.done);
 
   return (
@@ -58,19 +59,29 @@ export default async function ApplyPage({ searchParams }: { searchParams: Search
         <form action={saveProfile} className="grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
             <label className="label" htmlFor="headline">Headline</label>
-            <input className="input" id="headline" name="headline" defaultValue={profile.headline} placeholder="Certified French tutor for exam prep" disabled={!editable} />
+            <input className="input" id="headline" name="headline" defaultValue={profile.headline} placeholder="Certified French tutor for exam prep" disabled={!profileEditable} />
           </div>
           <div className="sm:col-span-2">
             <label className="label" htmlFor="bio">About you and how you teach</label>
-            <textarea className="input min-h-32" id="bio" name="bio" defaultValue={profile.bio} disabled={!editable} />
+            <textarea className="input min-h-32" id="bio" name="bio" defaultValue={profile.bio} disabled={!profileEditable} />
           </div>
           <div>
             <label className="label" htmlFor="country">Country</label>
-            <input className="input" id="country" name="country" defaultValue={profile.country} disabled={!editable} />
+            <input className="input" id="country" name="country" defaultValue={profile.country} disabled={!profileEditable} />
           </div>
           <div>
             <label className="label" htmlFor="hourlyRate">Hourly rate (USD)</label>
-            <input className="input" id="hourlyRate" name="hourlyRate" type="number" min="5" max="200" step="1" defaultValue={profile.hourlyRateCents / 100} disabled={!editable} />
+            <input className="input" id="hourlyRate" name="hourlyRate" type="number" min="5" max="200" step="1" defaultValue={profile.hourlyRateCents / 100} disabled={!profileEditable} />
+          </div>
+          <div>
+            <label className="label" htmlFor="trialPrice">Trial lesson price (USD, optional)</label>
+            <input className="input" id="trialPrice" name="trialPrice" type="number" min="0" step="1" defaultValue={profile.trialPriceCents != null ? profile.trialPriceCents / 100 : ""} placeholder="Blank = normal price" disabled={!profileEditable} />
+            <p className="muted mt-1">Your choice: discounted, free, or full price. Unlike other sites, you are always paid for paid trials.</p>
+          </div>
+          <div>
+            <label className="label" htmlFor="meetingLink">Your meeting link (optional)</label>
+            <input className="input" id="meetingLink" name="meetingLink" type="url" defaultValue={profile.meetingLink ?? ""} placeholder="https://zoom.us/j/… or Google Meet" disabled={!profileEditable} />
+            <p className="muted mt-1">Use any tool you like. If blank, each lesson gets a free Jitsi video room.</p>
           </div>
           <div className="sm:col-span-2 space-y-2">
             <p className="label">Languages you teach (Native, C2 or C1 only)</p>
@@ -78,18 +89,18 @@ export default async function ApplyPage({ searchParams }: { searchParams: Search
               const current = profile.languages[i];
               return (
                 <div key={i} className="grid grid-cols-2 gap-2">
-                  <select className="input" name="language" defaultValue={current?.language ?? ""} disabled={!editable} aria-label={`Language ${i + 1}`}>
+                  <select className="input" name="language" defaultValue={current?.language ?? ""} disabled={!profileEditable} aria-label={`Language ${i + 1}`}>
                     <option value="">—</option>
                     {LANGUAGES.map((l) => <option key={l}>{l}</option>)}
                   </select>
-                  <select className="input" name="level" defaultValue={current?.level ?? "NATIVE"} disabled={!editable} aria-label={`Level ${i + 1}`}>
+                  <select className="input" name="level" defaultValue={current?.level ?? "NATIVE"} disabled={!profileEditable} aria-label={`Level ${i + 1}`}>
                     {LANGUAGE_LEVELS.map((l) => <option key={l} value={l}>{l === "NATIVE" ? "Native" : l}</option>)}
                   </select>
                 </div>
               );
             })}
           </div>
-          <div className="sm:col-span-2"><button className="btn" disabled={!editable}>Save profile</button></div>
+          <div className="sm:col-span-2"><button className="btn" disabled={!profileEditable}>Save profile</button></div>
         </form>
       </section>
 

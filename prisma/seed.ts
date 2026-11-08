@@ -10,6 +10,7 @@ import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { feeForClass, sessionPriceCents } from "../src/lib/fees";
 
+
 const prisma = new PrismaClient();
 const HOUR = 3600 * 1000;
 const DAY = 24 * HOUR;
@@ -39,6 +40,9 @@ async function main() {
   await prisma.review.deleteMany();
   await prisma.booking.deleteMany();
   await prisma.availabilitySlot.deleteMany();
+  await prisma.message.deleteMany();
+  await prisma.dispute.deleteMany();
+  await prisma.passwordResetToken.deleteMany();
   await prisma.tutorApplication.deleteMany();
   await prisma.tutorLanguage.deleteMany();
   await prisma.tutorProfile.deleteMany();
@@ -54,7 +58,7 @@ async function main() {
 
   async function tutor(opts: {
     email: string; name: string; country: string; headline: string; bio: string; rate: number;
-    languages: [string, string][]; status: "APPROVED" | "SUBMITTED";
+    languages: [string, string][]; status: "APPROVED" | "SUBMITTED"; trialPriceCents?: number | null;
   }) {
     const user = await mk(opts.email, opts.name, "TUTOR");
     const approved = opts.status === "APPROVED";
@@ -65,6 +69,7 @@ async function main() {
         bio: opts.bio,
         country: opts.country,
         hourlyRateCents: opts.rate,
+        trialPriceCents: opts.trialPriceCents ?? null,
         status: opts.status,
         languages: { create: opts.languages.map(([language, level]) => ({ language, level })) },
         application: {
@@ -73,7 +78,8 @@ async function main() {
             submittedAt: new Date(Date.now() - 10 * DAY),
             reviewedAt: approved ? new Date(Date.now() - 8 * DAY) : null,
             resumeFileName: "resume.pdf",
-            resumePath: null,
+            resumeMime: "application/pdf",
+            resumeData: new Uint8Array(Buffer.from("%PDF-1.4\n% demo resume\n")),
             skillCheckScore: 88,
             skillCheckPassed: true,
             writingSample:
@@ -97,7 +103,7 @@ async function main() {
     languages: [["Spanish", "NATIVE"], ["English", "C1"]],
   });
   const kenji = await tutor({
-    email: "kenji@tutconnect.dev", name: "Kenji Watanabe", country: "Japan", rate: 2500, status: "APPROVED",
+    email: "kenji@tutconnect.dev", name: "Kenji Watanabe", country: "Japan", rate: 2500, status: "APPROVED", trialPriceCents: 1000,
     headline: "Japanese from zero to JLPT N3, step by step",
     bio: "Tokyo-born teacher who loves helping beginners read their first manga. I build every lesson around your goals, with spaced-repetition vocab decks between classes.",
     languages: [["Japanese", "NATIVE"]],
@@ -151,7 +157,20 @@ async function main() {
     data: {
       studentId: student.id, tutorId: kenji.id, slotId: kSlot.id, language: "Japanese", startsAt: kSlot.startsAt,
       durationMin: 60, priceCents: kFee.priceCents, feeRateBps: kFee.feeRateBps, platformFeeCents: kFee.platformFeeCents,
-      tutorPayoutCents: kFee.tutorPayoutCents, status: "CONFIRMED", paymentRef: "seed_k",
+      tutorPayoutCents: kFee.tutorPayoutCents, status: "CONFIRMED", paymentRef: "seed_k", isTrial: false,
+      meetingUrl: `https://meet.jit.si/TutConnect-seed-k`, confirmedAt: new Date(),
+    },
+  });
+
+  // Sofía: a lesson that ended 2 hours ago, waiting for Sam to confirm or report a problem.
+  const endedStart = new Date(Date.now() - 3 * HOUR);
+  const endedSlot = await prisma.availabilitySlot.create({ data: { tutorId: sofia.id, startsAt: endedStart, durationMin: 60, isBooked: true } });
+  const eFee = feeForClass(3000, 6);
+  await prisma.booking.create({
+    data: {
+      studentId: student.id, tutorId: sofia.id, slotId: endedSlot.id, language: "Spanish", startsAt: endedStart, durationMin: 60,
+      priceCents: eFee.priceCents, feeRateBps: eFee.feeRateBps, platformFeeCents: eFee.platformFeeCents, tutorPayoutCents: eFee.tutorPayoutCents,
+      status: "CONFIRMED", paymentRef: "seed_e", meetingUrl: "https://meet.jit.si/TutConnect-seed-e", confirmedAt: new Date(Date.now() - 2 * 86400_000),
     },
   });
 

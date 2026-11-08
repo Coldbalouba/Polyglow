@@ -13,7 +13,8 @@ export default async function LoginPage({ searchParams }: { searchParams: Search
         <div><label className="label" htmlFor="password">Password</label><input className="input" id="password" name="password" type="password" required /></div>
         <button className="btn w-full">Log in</button>
       </form>
-      <p className="muted mt-4">New here? <Link className="text-brand-600 underline" href="/signup">Create an account</Link></p>
+      <p className="muted mt-4"><Link className="text-brand-600 underline" href="/forgot">Forgot password?</Link></p>
+      <p className="muted mt-2">New here? <Link className="text-brand-600 underline" href="/signup">Create an account</Link></p>
     </div>
   );
 }

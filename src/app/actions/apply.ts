@@ -9,7 +9,10 @@ import { canSubmit } from "@/lib/application";
 import { isLanguage, LANGUAGE_LEVELS, MAX_HOURLY_RATE_CENTS, MIN_HOURLY_RATE_CENTS } from "@/lib/constants";
 import { scoreQuiz, QUIZ } from "@/lib/skill-check";
 import { getTutorContext, isEditable, snapshotOf } from "@/lib/tutor";
-import { saveResume } from "@/lib/uploads";
+import { readResume } from "@/lib/uploads";
+import { isSafeMeetingLink } from "@/lib/policy";
+import { sendEmail, link } from "@/lib/email";
+import { config } from "@/lib/config";
 import { draftLessonPlan } from "@/lib/lesson-plan-ai";
 
 function back(section: string, msg: { error?: string; notice?: string }): never {
@@ -28,6 +31,8 @@ const profileSchema = z.object({
   headline: z.string().trim().min(10, "Headline must be at least 10 characters").max(120),
   bio: z.string().trim().min(80, "Bio must be at least 80 characters").max(3000),
   country: z.string().trim().max(60),
+  trialPrice: z.string().trim().max(10),
+  meetingLink: z.string().trim().max(300),
   hourlyRate: z.coerce
     .number()
     .min(MIN_HOURLY_RATE_CENTS / 100, `Minimum rate is $${MIN_HOURLY_RATE_CENTS / 100}`)
@@ -35,9 +40,22 @@ const profileSchema = z.object({
 });
 
 export async function saveProfile(formData: FormData) {
-  const { profile } = await editableContext();
+  // Approved tutors can keep their profile, prices and meeting link up to date.
+  const user = await requireUser(["TUTOR"]);
+  const { profile, application } = await getTutorContext(user.id);
+  if (!isEditable(application.status) && application.status !== "APPROVED") back("status", { error: "Your application is under review and can't be edited right now." });
   const parsed = profileSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) back("profile", { error: parsed.error.issues[0].message });
+
+  const { trialPrice, meetingLink } = parsed.data;
+  let trialPriceCents: number | null = null;
+  if (trialPrice !== "") {
+    const n = Number(trialPrice);
+    if (!Number.isFinite(n) || n < 0 || n > parsed.data.hourlyRate) back("profile", { error: "Trial price must be between $0 and your hourly rate." });
+    if (n > 0 && n < 1) back("profile", { error: "A paid trial must be at least $1 (or $0 for free)." });
+    trialPriceCents = Math.round(n * 100);
+  }
+  if (meetingLink && !isSafeMeetingLink(meetingLink)) back("profile", { error: "Meeting link must start with https://" });
 
   const languages = formData.getAll("language").map(String);
   const levels = formData.getAll("level").map(String);
@@ -55,6 +73,8 @@ export async function saveProfile(formData: FormData) {
         bio: parsed.data.bio,
         country: parsed.data.country,
         hourlyRateCents: Math.round(parsed.data.hourlyRate * 100),
+        trialPriceCents,
+        meetingLink: meetingLink || null,
       },
     }),
     prisma.tutorLanguage.deleteMany({ where: { tutorId: profile.id } }),
@@ -68,15 +88,15 @@ export async function uploadResume(formData: FormData) {
   const { application } = await editableContext();
   const file = formData.get("resume");
   if (!(file instanceof File) || file.size === 0) back("resume", { error: "Choose a file to upload." });
-  let stored: string;
+  let resume: Awaited<ReturnType<typeof readResume>>;
   try {
-    stored = await saveResume(file);
+    resume = await readResume(file);
   } catch (e) {
     back("resume", { error: (e as Error).message });
   }
   await prisma.tutorApplication.update({
     where: { id: application.id },
-    data: { resumeFileName: file.name, resumePath: stored, resumeVerified: false },
+    data: { resumeFileName: resume.name, resumeMime: resume.mime, resumeData: new Uint8Array(resume.data), resumeVerified: false },
   });
   revalidatePath("/apply");
   back("resume", { notice: "Resume uploaded." });
@@ -162,6 +182,7 @@ export async function submitApplication() {
     }),
     prisma.tutorProfile.update({ where: { id: ctx.profile.id }, data: { status: "SUBMITTED" } }),
   ]);
+  await sendEmail(config.adminEmails, "New tutor application", `${user.name} (${user.email}) submitted an application.\nReview: ${link("/admin")}`);
   revalidatePath("/apply");
   back("status", { notice: "Application submitted! Our team will review it and schedule your live skill check." });
 }

@@ -30,6 +30,23 @@ export default async function Home() {
         </div>
       </section>
 
+      <section className="card space-y-4">
+        <h2 className="h2">Built to fix what people hate about big tutoring sites</h2>
+        <div className="grid gap-4 md:grid-cols-3">
+          {[
+            ["No subscriptions", "Pay per lesson. Nothing auto-renews, nothing expires."],
+            ["Refunds to your card", "Free cancellation up to 12h before. Tutor no-show? You get your money back."],
+            ["Tutors paid for trials", "Tutors keep their trial lesson pay. Other sites keep 100% of it."],
+            ["1–5% fee, not 18–33%", "So tutors can charge less and still earn more."],
+            ["Fair, public ranking", "No paid boosts. New tutors get a fair chance to be found."],
+            ["Paid straight to your bank", "Tutors get paid through their own Stripe account. We never hold their money."],
+          ].map(([t, b]) => (
+            <div key={t}><p className="font-semibold">✓ {t}</p><p className="muted">{b}</p></div>
+          ))}
+        </div>
+        <Link href="/compare/preply" className="text-sm text-brand-600 underline">See the full comparison with Preply, with sources →</Link>
+      </section>
+
       <section className="grid gap-6 md:grid-cols-3">
         {[
           ["1. Resume", "Tutors share their teaching and language background. We verify it."],

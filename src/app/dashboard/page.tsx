@@ -7,7 +7,8 @@ import { getTutorContext } from "@/lib/tutor";
 import { SESSION_DURATIONS } from "@/lib/constants";
 import { Flash, param, type SearchParams } from "@/components/Flash";
 import { LocalTime, TzOffsetInput } from "@/components/LocalTime";
-import { addSlot, cancel, complete, removeSlot, review } from "@/app/actions/bookings";
+import { addSlot, removeSlot, review } from "@/app/actions/bookings";
+import { paymentsLive } from "@/lib/config";
 
 export default async function DashboardPage({ searchParams }: { searchParams: SearchParams }) {
   const user = await requireUser();
@@ -23,7 +24,9 @@ async function StudentDashboard({ userId, name, flash }: { userId: string; name:
     include: { tutor: { include: { user: true } }, review: true },
     orderBy: { startsAt: "desc" },
   });
-  const upcoming = bookings.filter((b) => ["PENDING_PAYMENT", "CONFIRMED"].includes(b.status));
+  const now = new Date();
+  const upcoming = bookings.filter((b) => ["PENDING_PAYMENT", "CONFIRMED"].includes(b.status) && b.startsAt > now).reverse();
+  const toConfirm = bookings.filter((b) => ["CONFIRMED", "DISPUTED"].includes(b.status) && b.startsAt <= now);
   const past = bookings.filter((b) => b.status === "COMPLETED");
 
   return (
@@ -40,13 +43,24 @@ async function StudentDashboard({ userId, name, flash }: { userId: string; name:
               <p className="muted"><LocalTime iso={b.startsAt.toISOString()} /> · {b.durationMin} min · {formatMoney(b.priceCents)}</p>
             </div>
             <div className="flex gap-2">
-              {b.status === "PENDING_PAYMENT" && <Link className="btn" href={`/bookings/${b.id}`}>Pay now</Link>}
+              {b.status === "PENDING_PAYMENT" && <span className="badge bg-amber-50 text-amber-800">Awaiting payment</span>}
               {b.status === "CONFIRMED" && <span className="badge">Confirmed</span>}
-              <form action={cancel}><input type="hidden" name="bookingId" value={b.id} /><button className="btn-danger">Cancel</button></form>
+              <Link className="btn-secondary" href={`/bookings/${b.id}`}>Open</Link>
             </div>
           </div>
         ))}
       </section>
+      {toConfirm.length > 0 && (
+        <section className="card space-y-3 border-brand-500">
+          <h2 className="h2">How did it go?</h2>
+          {toConfirm.map((b) => (
+            <div key={b.id} className="flex flex-wrap items-center justify-between gap-3">
+              <p>{b.language} with {b.tutor.user.name} · <span className="muted"><LocalTime iso={b.startsAt.toISOString()} /></span></p>
+              <Link className="btn" href={`/bookings/${b.id}`}>{b.status === "DISPUTED" ? "View report" : "Confirm or report a problem"}</Link>
+            </div>
+          ))}
+        </section>
+      )}
       <section className="card space-y-3">
         <h2 className="h2">Past lessons</h2>
         {past.length === 0 && <p className="muted">Completed lessons will show here so you can review your tutor.</p>}
@@ -89,7 +103,7 @@ async function TutorDashboard({ userId, flash }: { userId: string; flash: React.
 
   const [bookings, slots, completedAgg] = await Promise.all([
     prisma.booking.findMany({
-      where: { tutorId: profile.id, status: { in: ["PENDING_PAYMENT", "CONFIRMED"] } },
+      where: { tutorId: profile.id, status: { in: ["PENDING_PAYMENT", "CONFIRMED", "DISPUTED"] } },
       include: { student: true },
       orderBy: { startsAt: "asc" },
     }),
@@ -105,9 +119,19 @@ async function TutorDashboard({ userId, flash }: { userId: string; flash: React.
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="h1">Tutor dashboard</h1>
-        <Link href={`/tutors/${profile.id}`} className="btn-secondary">View public profile</Link>
+        <div className="flex gap-2">
+          <Link href="/apply#profile" className="btn-secondary">Edit profile & prices</Link>
+          <Link href="/dashboard/payouts" className="btn-secondary">Payouts</Link>
+          <Link href={`/tutors/${profile.id}`} className="btn-secondary">Public profile</Link>
+        </div>
       </div>
       {flash}
+      {paymentsLive() && !profile.stripeChargesEnabled && (
+        <div className="card flex flex-wrap items-center justify-between gap-3 border-amber-300 bg-amber-50">
+          <p>Connect payouts so students can book and pay you.</p>
+          <Link href="/dashboard/payouts" className="btn">Connect payouts</Link>
+        </div>
+      )}
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="card"><p className="muted">Classes completed</p><p className="text-2xl font-bold">{completed}</p></div>
         <div className="card"><p className="muted">Earned</p><p className="text-2xl font-bold">{formatMoney(completedAgg._sum.tutorPayoutCents ?? 0)}</p><p className="muted">Fees paid: {formatMoney(completedAgg._sum.platformFeeCents ?? 0)}</p></div>
@@ -125,15 +149,12 @@ async function TutorDashboard({ userId, flash }: { userId: string; flash: React.
           <div key={b.id} className="flex flex-wrap items-center justify-between gap-3 border-t border-stone-100 pt-3 first:border-0 first:pt-0">
             <div>
               <p className="font-medium">{b.language} with {b.student.name}</p>
-              <p className="muted"><LocalTime iso={b.startsAt.toISOString()} /> · {b.durationMin} min · {formatMoney(b.priceCents)} · {b.status === "PENDING_PAYMENT" ? "awaiting payment" : "paid"}</p>
+              <p className="muted"><LocalTime iso={b.startsAt.toISOString()} /> · {b.durationMin} min · {formatMoney(b.priceCents)} · {b.status === "PENDING_PAYMENT" ? "awaiting payment" : b.startsAt <= now ? "confirms automatically 24h after the lesson" : "paid"}</p>
             </div>
             <div className="flex gap-2">
-              {b.status === "CONFIRMED" && b.startsAt <= now && (
-                <form action={complete}><input type="hidden" name="bookingId" value={b.id} /><button className="btn">Mark completed</button></form>
-              )}
-              {b.startsAt > now && (
-                <form action={cancel}><input type="hidden" name="bookingId" value={b.id} /><button className="btn-danger">Cancel</button></form>
-              )}
+              {b.status === "DISPUTED" && <span className="badge bg-amber-50 text-amber-800">Problem reported</span>}
+              {b.isTrial && <span className="badge">Trial</span>}
+              <Link className="btn-secondary" href={`/bookings/${b.id}`}>Open</Link>
             </div>
           </div>
         ))}

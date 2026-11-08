@@ -11,20 +11,25 @@ export default async function AdminPage({ searchParams }: { searchParams: Search
   const sp = await searchParams;
   const status = (FILTERS as readonly string[]).includes(param(sp, "status") ?? "") ? param(sp, "status")! : "SUBMITTED";
 
-  const [apps, counts, revenue] = await Promise.all([
+  const [apps, counts, revenue, openDisputes] = await Promise.all([
     prisma.tutorApplication.findMany({
       where: { status },
+      omit: { resumeData: true },
       include: { tutor: { include: { user: true, languages: true } } },
       orderBy: { submittedAt: "asc" },
     }),
     prisma.tutorApplication.groupBy({ by: ["status"], _count: true }),
     prisma.booking.aggregate({ where: { status: "COMPLETED" }, _sum: { platformFeeCents: true, tutorPayoutCents: true }, _count: true }),
+    prisma.dispute.count({ where: { status: "OPEN" } }),
   ]);
   const count = (s: string) => counts.find((c) => c.status === s)?._count ?? 0;
 
   return (
     <div className="space-y-8">
-      <h1 className="h1">Admin</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="h1">Admin</h1>
+        <Link href="/admin/disputes" className="btn-secondary">Disputes ({openDisputes})</Link>
+      </div>
       <div className="grid gap-4 sm:grid-cols-3">
         <Stat label="Completed classes" value={String(revenue._count)} />
         <Stat label="Paid to tutors" value={formatMoney(revenue._sum.tutorPayoutCents ?? 0)} />

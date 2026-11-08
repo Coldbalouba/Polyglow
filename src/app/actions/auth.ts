@@ -1,26 +1,30 @@
 "use server";
 
+import { createHash, randomBytes } from "node:crypto";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { createSession, destroySession, hashPassword, verifyPassword } from "@/lib/auth";
+import { config } from "@/lib/config";
+import { link, sendEmail, signature } from "@/lib/email";
 
 const signupSchema = z.object({
-  name: z.string().trim().min(2, "Please enter your name"),
+  name: z.string().trim().min(2, "Please enter your name").max(80),
   email: z.string().trim().toLowerCase().email("Please enter a valid email"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  password: z.string().min(8, "Password must be at least 8 characters").max(200),
   role: z.enum(["STUDENT", "TUTOR"]),
+  terms: z.literal("on", { message: "Please accept the Terms and Privacy Policy" }),
 });
 
 export async function signup(formData: FormData) {
   const parsed = signupSchema.safeParse(Object.fromEntries(formData));
-  if (!parsed.success) {
-    const role = formData.get("role") === "TUTOR" ? "TUTOR" : "STUDENT";
-    redirect(`/signup?role=${role}&error=${encodeURIComponent(parsed.error.issues[0].message)}`);
-  }
-  const { name, email, password, role } = parsed.data;
+  const roleParam = formData.get("role") === "TUTOR" ? "TUTOR" : "STUDENT";
+  if (!parsed.success) redirect(`/signup?role=${roleParam}&error=${encodeURIComponent(parsed.error.issues[0].message)}`);
+  const { name, email, password } = parsed.data;
+  // Emails listed in ADMIN_EMAILS become admins when they sign up.
+  const role = config.adminEmails.includes(email) ? "ADMIN" : parsed.data.role;
   if (await prisma.user.findUnique({ where: { email } })) {
-    redirect(`/signup?role=${role}&error=${encodeURIComponent("An account with this email already exists")}`);
+    redirect(`/signup?role=${roleParam}&error=${encodeURIComponent("An account with this email already exists. Try logging in.")}`);
   }
   const user = await prisma.user.create({
     data: {
@@ -32,7 +36,11 @@ export async function signup(formData: FormData) {
     },
   });
   await createSession(user.id);
-  redirect(role === "TUTOR" ? "/apply" : "/tutors");
+  await sendEmail(email, "Welcome to TutConnect",
+    role === "TUTOR"
+      ? `Hi ${name},\n\nThanks for applying to teach. Finish your application here: ${link("/apply")}\nWe review every application by hand.${signature}`
+      : `Hi ${name},\n\nWelcome! Find a vetted tutor here: ${link("/tutors")}\nPay per lesson, no subscriptions, no expiring credits.${signature}`);
+  redirect(role === "ADMIN" ? "/admin" : role === "TUTOR" ? "/apply" : "/tutors");
 }
 
 export async function login(formData: FormData) {
@@ -40,13 +48,48 @@ export async function login(formData: FormData) {
   const password = String(formData.get("password") ?? "");
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user || !(await verifyPassword(password, user.passwordHash))) {
+    await new Promise((r) => setTimeout(r, 400)); // slow down guessing a little
     redirect(`/login?error=${encodeURIComponent("Wrong email or password")}`);
   }
   await createSession(user.id);
-  redirect(user.role === "ADMIN" ? "/admin" : user.role === "TUTOR" ? "/apply" : "/dashboard");
+  redirect(user.role === "ADMIN" ? "/admin" : user.role === "TUTOR" ? "/dashboard" : "/dashboard");
 }
 
 export async function logout() {
   await destroySession();
   redirect("/");
+}
+
+const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");
+
+export async function requestPasswordReset(formData: FormData) {
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (user) {
+    const token = randomBytes(32).toString("hex");
+    await prisma.passwordResetToken.create({
+      data: { userId: user.id, tokenHash: sha256(token), expiresAt: new Date(Date.now() + 3600_000) },
+    });
+    await sendEmail(email, "Reset your TutConnect password",
+      `Hi ${user.name},\n\nReset your password here (valid for 1 hour):\n${link(`/reset?token=${token}`)}\n\nIf you didn't ask for this, ignore this email.${signature}`);
+  }
+  // Same answer either way, so the form can't be used to discover accounts.
+  redirect(`/forgot?notice=${encodeURIComponent("If that email has an account, a reset link is on its way.")}`);
+}
+
+export async function resetPassword(formData: FormData) {
+  const token = String(formData.get("token") ?? "");
+  const password = String(formData.get("password") ?? "");
+  if (password.length < 8) redirect(`/reset?token=${token}&error=${encodeURIComponent("Password must be at least 8 characters")}`);
+  const record = await prisma.passwordResetToken.findUnique({ where: { tokenHash: sha256(token) } });
+  if (!record || record.usedAt || record.expiresAt < new Date()) {
+    redirect(`/forgot?error=${encodeURIComponent("That reset link is invalid or expired. Request a new one.")}`);
+  }
+  await prisma.$transaction([
+    prisma.user.update({ where: { id: record.userId }, data: { passwordHash: await hashPassword(password) } }),
+    prisma.passwordResetToken.update({ where: { id: record.id }, data: { usedAt: new Date() } }),
+    prisma.session.deleteMany({ where: { userId: record.userId } }),
+  ]);
+  await createSession(record.userId);
+  redirect("/dashboard");
 }

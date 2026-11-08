@@ -6,16 +6,16 @@ import type { ApplicationSnapshot } from "./application";
 export async function getTutorContext(userId: string) {
   const existing = await prisma.tutorProfile.findUnique({
     where: { userId },
-    include: { languages: true, application: true },
+    include: { languages: true, application: { omit: { resumeData: true } } },
   });
   const profile =
     existing ??
     (await prisma.tutorProfile.create({
       data: { userId, application: { create: {} } },
-      include: { languages: true, application: true },
+      include: { languages: true, application: { omit: { resumeData: true } } },
     }));
   const application =
-    profile.application ?? (await prisma.tutorApplication.create({ data: { tutorId: profile.id } }));
+    profile.application ?? (await prisma.tutorApplication.create({ data: { tutorId: profile.id }, omit: { resumeData: true } }));
   return { profile, application };
 }
 
@@ -26,7 +26,7 @@ export function snapshotOf(ctx: Awaited<ReturnType<typeof getTutorContext>>): Ap
     bio: profile.bio,
     hourlyRateCents: profile.hourlyRateCents,
     languageCount: profile.languages.length,
-    resumePath: application.resumePath,
+    resumePath: application.resumeFileName,
     skillCheckPassed: application.skillCheckPassed,
     writingSample: application.writingSample,
     lessonPlan: application.lessonPlan,

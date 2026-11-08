@@ -5,7 +5,9 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
-import { BookingError, cancelBooking, completeBooking, createBooking, payBooking } from "@/lib/bookings";
+import { BookingError, cancelBooking, createBooking, openDispute, payBookingDemo, studentConfirmLesson } from "@/lib/bookings";
+import { link, sendEmail, signature } from "@/lib/email";
+import { paymentsLive } from "@/lib/config";
 import { getTutorContext } from "@/lib/tutor";
 import { SESSION_DURATIONS } from "@/lib/constants";
 
@@ -20,20 +22,21 @@ export async function book(formData: FormData) {
   const slotId = String(formData.get("slotId") ?? "");
   const tutorId = String(formData.get("tutorId") ?? "");
   const language = String(formData.get("language") ?? "");
-  let bookingId: string;
+  let target: string;
   try {
-    bookingId = (await createBooking(user.id, slotId, language)).id;
+    target = (await createBooking(user, slotId, language)).redirectTo;
   } catch (e) {
     redirect(`/tutors/${tutorId}?error=${encodeURIComponent(messageOf(e))}`);
   }
-  redirect(`/bookings/${bookingId}`);
+  redirect(target);
 }
 
-export async function pay(formData: FormData) {
+/** Demo mode only: marks the booking paid without real money. */
+export async function payDemo(formData: FormData) {
   const user = await requireUser(["STUDENT"]);
   const id = String(formData.get("bookingId"));
   try {
-    await payBooking(id, user.id);
+    await payBookingDemo(id, user.id);
   } catch (e) {
     redirect(`/bookings/${id}?error=${encodeURIComponent(messageOf(e))}`);
   }
@@ -43,25 +46,57 @@ export async function pay(formData: FormData) {
 export async function cancel(formData: FormData) {
   const user = await requireUser();
   const id = String(formData.get("bookingId"));
+  let notice = "Booking cancelled.";
   try {
-    await cancelBooking(id, user.id);
+    const outcome = await cancelBooking(id, user.id);
+    if (outcome.allowed && outcome.refund === "FULL") notice = "Booking cancelled. A full refund is on its way to the card used.";
+    if (outcome.allowed && outcome.status === "LATE_CANCELLED") notice = "Booking cancelled. Because it was within 12 hours, the tutor keeps the payment.";
   } catch (e) {
-    redirect(`/dashboard?error=${encodeURIComponent(messageOf(e))}`);
+    redirect(`/bookings/${id}?error=${encodeURIComponent(messageOf(e))}`);
   }
   revalidatePath("/dashboard");
-  redirect(`/dashboard?notice=${encodeURIComponent("Booking cancelled. Any payment has been refunded.")}`);
+  redirect(`/dashboard?notice=${encodeURIComponent(notice)}`);
 }
 
-export async function complete(formData: FormData) {
-  const user = await requireUser(["TUTOR"]);
+export async function confirmLesson(formData: FormData) {
+  const user = await requireUser(["STUDENT"]);
   const id = String(formData.get("bookingId"));
   try {
-    await completeBooking(id, user.id);
+    await studentConfirmLesson(id, user.id);
   } catch (e) {
-    redirect(`/dashboard?error=${encodeURIComponent(messageOf(e))}`);
+    redirect(`/bookings/${id}?error=${encodeURIComponent(messageOf(e))}`);
   }
-  revalidatePath("/dashboard");
-  redirect(`/dashboard?notice=${encodeURIComponent("Class marked as completed and payout sent.")}`);
+  redirect(`/bookings/${id}?notice=${encodeURIComponent("Thanks for confirming! Leave a review below.")}`);
+}
+
+const DISPUTE_REASONS = ["TUTOR_NO_SHOW", "TECHNICAL", "QUALITY", "OTHER"] as const;
+
+export async function reportProblem(formData: FormData) {
+  const user = await requireUser(["STUDENT"]);
+  const id = String(formData.get("bookingId"));
+  const reason = String(formData.get("reason"));
+  const details = String(formData.get("details") ?? "").trim().slice(0, 2000);
+  if (!(DISPUTE_REASONS as readonly string[]).includes(reason)) redirect(`/bookings/${id}?error=${encodeURIComponent("Pick a reason.")}`);
+  try {
+    await openDispute(id, user.id, reason, details);
+  } catch (e) {
+    redirect(`/bookings/${id}?error=${encodeURIComponent(messageOf(e))}`);
+  }
+  redirect(`/bookings/${id}?notice=${encodeURIComponent("Thanks for telling us. We'll review it within 48 hours.")}`);
+}
+
+export async function sendMessage(formData: FormData) {
+  const user = await requireUser();
+  const id = String(formData.get("bookingId"));
+  const body = String(formData.get("body") ?? "").trim().slice(0, 2000);
+  const b = await prisma.booking.findUnique({ where: { id }, include: { student: true, tutor: { include: { user: true } } } });
+  if (!b || (b.studentId !== user.id && b.tutor.userId !== user.id)) redirect("/dashboard");
+  if (!body) redirect(`/bookings/${id}#messages`);
+  await prisma.message.create({ data: { bookingId: id, authorId: user.id, body } });
+  const other = b.studentId === user.id ? b.tutor.user : b.student;
+  await sendEmail(other.email, `New message from ${user.name}`, `${user.name} wrote:\n\n${body}\n\nReply: ${link(`/bookings/${id}#messages`)}${signature}`);
+  revalidatePath(`/bookings/${id}`);
+  redirect(`/bookings/${id}#messages`);
 }
 
 const reviewSchema = z.object({
@@ -71,18 +106,20 @@ const reviewSchema = z.object({
 });
 
 export async function review(formData: FormData) {
+  const rawBack = String(formData.get("back") ?? "");
+  const back = /^\/[a-z]/i.test(rawBack) ? rawBack : "/dashboard";
   const user = await requireUser(["STUDENT"]);
   const parsed = reviewSchema.safeParse(Object.fromEntries(formData));
-  if (!parsed.success) redirect(`/dashboard?error=${encodeURIComponent("Pick a rating from 1 to 5.")}`);
+  if (!parsed.success) redirect(`${back}?error=${encodeURIComponent("Pick a rating from 1 to 5.")}`);
   const booking = await prisma.booking.findUnique({ where: { id: parsed.data.bookingId }, include: { review: true } });
   if (!booking || booking.studentId !== user.id || booking.status !== "COMPLETED")
-    redirect(`/dashboard?error=${encodeURIComponent("You can only review classes you have completed.")}`);
-  if (booking.review) redirect(`/dashboard?error=${encodeURIComponent("You already reviewed this class.")}`);
+    redirect(`${back}?error=${encodeURIComponent("You can only review classes you have completed.")}`);
+  if (booking.review) redirect(`${back}?error=${encodeURIComponent("You already reviewed this class.")}`);
   await prisma.review.create({
     data: { bookingId: booking.id, authorId: user.id, rating: parsed.data.rating, comment: parsed.data.comment },
   });
   revalidatePath("/dashboard");
-  redirect(`/dashboard?notice=${encodeURIComponent("Thanks for your review!")}`);
+  redirect(`${back}?notice=${encodeURIComponent("Thanks for your review!")}`);
 }
 
 const slotSchema = z.object({
@@ -98,6 +135,7 @@ export async function addSlot(formData: FormData) {
   const user = await requireUser(["TUTOR"]);
   const { profile } = await getTutorContext(user.id);
   if (profile.status !== "APPROVED") redirect(`/dashboard?error=${encodeURIComponent("You can add availability once approved.")}`);
+  if (paymentsLive() && !profile.stripeChargesEnabled) redirect(`/dashboard/payouts?error=${encodeURIComponent("Connect payouts first so students can pay you.")}`);
   const parsed = slotSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) redirect(`/dashboard?error=${encodeURIComponent("Enter a valid date, time and length.")}`);
   const { date, time, durationMin, repeatWeeks, tzOffset } = parsed.data;

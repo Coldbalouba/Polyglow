@@ -3,7 +3,8 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { LANGUAGES } from "@/lib/constants";
 import { formatMoney } from "@/lib/fees";
-import { ratingsFor } from "@/lib/tutor-stats";
+import { statsFor } from "@/lib/tutor-stats";
+import { paymentsLive } from "@/lib/config";
 import { param, type SearchParams } from "@/components/Flash";
 import { Stars } from "@/components/Stars";
 
@@ -16,24 +17,28 @@ export default async function TutorsPage({ searchParams }: { searchParams: Searc
 
   const where: Prisma.TutorProfileWhereInput = {
     status: "APPROVED",
+    ...(paymentsLive() ? { stripeChargesEnabled: true } : {}),
     ...(language ? { languages: { some: { language } } } : {}),
     ...(maxPrice ? { hourlyRateCents: { lte: maxPrice * 100 } } : {}),
     ...(q ? { OR: [{ headline: { contains: q } }, { bio: { contains: q } }, { user: { name: { contains: q } } }] } : {}),
   };
   const tutors = await prisma.tutorProfile.findMany({
     where,
-    include: { user: true, languages: true, _count: { select: { bookings: { where: { status: "COMPLETED" } } } } },
+    include: { user: true, languages: true },
     orderBy: sort === "price" ? { hourlyRateCents: "asc" } : { createdAt: "desc" },
-    take: 60,
+    take: 200,
   });
-  const ratings = await ratingsFor(tutors.map((t) => t.id));
-  if (sort === "rating") tutors.sort((a, b) => (ratings.get(b.id)?.avg ?? 0) - (ratings.get(a.id)?.avg ?? 0));
+  const stats = await statsFor(tutors.map((t) => t.id));
+  if (sort === "rating") tutors.sort((a, b) => (stats.get(b.id)?.score ?? 0) - (stats.get(a.id)?.score ?? 0));
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="h1">Find your language tutor</h1>
-        <p className="muted mt-1">Every tutor here passed our resume review, skill check and lesson-plan review.</p>
+        <p className="muted mt-1">
+          Every tutor here passed our resume review, skill check and lesson-plan review. Nobody can pay for a higher spot.{" "}
+          <Link href="/how-it-works#ranking" className="underline">How ranking works</Link>
+        </p>
       </div>
       <form className="card grid gap-3 sm:grid-cols-5" method="get">
         <select className="input" name="language" defaultValue={language} aria-label="Language">
@@ -44,7 +49,7 @@ export default async function TutorsPage({ searchParams }: { searchParams: Searc
         <input className="input" name="maxPrice" type="number" min="5" defaultValue={maxPrice ?? ""} placeholder="Max $/hour" aria-label="Max price per hour" />
         <div className="flex gap-2">
           <select className="input" name="sort" defaultValue={sort} aria-label="Sort">
-            <option value="rating">Top rated</option>
+            <option value="rating">Best match</option>
             <option value="price">Lowest price</option>
             <option value="new">Newest</option>
           </select>
@@ -57,7 +62,7 @@ export default async function TutorsPage({ searchParams }: { searchParams: Searc
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {tutors.map((t) => {
-            const r = ratings.get(t.id);
+            const r = stats.get(t.id);
             return (
               <Link key={t.id} href={`/tutors/${t.id}`} className="card block transition hover:border-brand-500">
                 <div className="flex items-start justify-between gap-4">
@@ -70,14 +75,17 @@ export default async function TutorsPage({ searchParams }: { searchParams: Searc
                       <p className="muted">{t.country}</p>
                     </div>
                   </div>
-                  <p className="text-right"><span className="text-lg font-bold">{formatMoney(t.hourlyRateCents)}</span><span className="muted">/hr</span></p>
+                  <div className="text-right">
+                    <p><span className="text-lg font-bold">{formatMoney(t.hourlyRateCents)}</span><span className="muted">/hr</span></p>
+                    {t.trialPriceCents != null && <p className="muted">Trial {t.trialPriceCents === 0 ? "free" : formatMoney(t.trialPriceCents)}</p>}
+                  </div>
                 </div>
                 <p className="mt-3 font-medium">{t.headline}</p>
                 <p className="muted mt-1 line-clamp-2">{t.bio}</p>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   {t.languages.map((l) => <span key={l.id} className="badge">{l.language} · {l.level === "NATIVE" ? "Native" : l.level}</span>)}
                   <span className="muted ml-auto">
-                    {r ? <><Stars rating={r.avg} /> {r.avg.toFixed(1)} ({r.count})</> : "New tutor"} · {t._count.bookings} classes
+                    {r && r.count > 0 ? <><Stars rating={r.avg} /> {r.avg.toFixed(1)} ({r.count})</> : "New tutor"} · {r?.completed ?? 0} lessons
                   </span>
                 </div>
               </Link>
