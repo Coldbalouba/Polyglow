@@ -14,13 +14,13 @@ A selective, languages-only tutoring marketplace that treats tutors fairly and k
 
 ## Stack
 
-Next.js 15 (App Router, server actions) · TypeScript · Tailwind CSS 4 · Prisma 6 + PostgreSQL · Stripe Connect · Resend email · Vitest · Netlify (hosting + hourly scheduled function) · optional Anthropic SDK for lesson-plan drafts.
+Next.js 15 (App Router, server actions) · TypeScript · Tailwind CSS 4 · Prisma 6 + PostgreSQL · Stripe Connect · email over SMTP or Resend · Vitest · Docker Compose (app, Postgres, Caddy HTTPS, hourly jobs, daily backups) · optional Anthropic SDK for lesson-plan drafts.
 
-**To put it online for $0, follow [LAUNCH.md](LAUNCH.md).**
+**To run it on your own server (about $5.50/month), follow [HOSTING.md](HOSTING.md).**
 
 ## Run it locally
 
-Requires Node 20+ and a Postgres database (local install, Docker, or a free Neon project).
+Requires Node 20+ and a Postgres database (local install, Docker, or a hosted Postgres).
 
 ```bash
 npm install
@@ -71,9 +71,10 @@ src/lib/application.ts      application completeness and approval rules + tests
 src/lib/policy.ts           cancellation, refund, dispute, auto-complete, trial pricing, ranking rules + tests
 src/lib/bookings.ts         book → Stripe Checkout → confirm, cancel/refund, disputes, hourly jobs
 src/lib/stripe.ts           Stripe Connect (accounts, onboarding, direct charges, refunds, fee settlement)
-src/lib/email.ts            Resend email (logs to console when not configured)
+src/lib/email.ts            email over SMTP or Resend (logs to console when not configured)
 src/app/api/stripe/webhook  Stripe Connect webhook
-src/app/api/cron            hourly housekeeping, called by netlify/functions/cron.mts
+src/app/api/cron            hourly housekeeping, called by the jobs container (deploy/jobs.sh)
+deploy/                     server setup, Caddyfile, jobs and update scripts; see HOSTING.md
 src/lib/lesson-plan-ai.ts   Claude lesson-plan drafts with a template fallback
 src/app/apply               tutor application wizard
 src/app/admin               application review, vetting checklist, disputes

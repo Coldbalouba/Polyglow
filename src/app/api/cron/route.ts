@@ -2,7 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 import { config } from "@/lib/config";
 import { runScheduledJobs } from "@/lib/bookings";
 
-/** Hourly housekeeping. Called by the Netlify scheduled function (netlify/functions/cron.mts). */
+/** Hourly housekeeping. Called hourly by the jobs container (deploy/jobs.sh). */
 export async function POST(req: Request) {
   const given = Buffer.from(req.headers.get("authorization")?.replace(/^Bearer /, "") ?? "");
   const expected = Buffer.from(config.cronSecret);

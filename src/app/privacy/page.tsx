@@ -15,7 +15,7 @@ export default function Privacy() {
       <h2 className="h2">How we use it</h2>
       <p>To run the marketplace: vetting tutors, booking and paying for lessons, sending emails about your account and lessons, and resolving disputes. We don&apos;t sell your data and don&apos;t use advertising trackers.</p>
       <h2 className="h2">Who we share it with</h2>
-      <p>Service providers that run the site: Stripe (payments), Resend (email), Netlify (hosting), Neon (database), and, for tutors who use the AI draft feature, Anthropic (lesson-plan drafting; only the lesson details you type are sent). Your tutor or student sees your name, messages and booking details.</p>
+      <p>Service providers that run the site: Stripe (payments), our email provider (for example Amazon SES or Resend), and our server host (for example OVHcloud), where the database also runs, and, for tutors who use the AI draft feature, Anthropic (lesson-plan drafting; only the lesson details you type are sent). Your tutor or student sees your name, messages and booking details.</p>
       <h2 className="h2">Your choices</h2>
       <p>You can ask us to export or delete your data by emailing support. We keep payment records as long as tax law requires.</p>
       <h2 className="h2">Cookies</h2>

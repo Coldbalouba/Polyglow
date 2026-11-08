@@ -2,7 +2,7 @@ import "server-only";
 
 /** Central place for environment configuration. Optional services degrade to safe local fallbacks. */
 export const config = {
-  appUrl: (process.env.APP_URL || process.env.URL || "http://localhost:3000").replace(/\/$/, ""),
+  appUrl: (process.env.APP_URL || "http://localhost:3000").replace(/\/$/, ""),
   stripeSecretKey: process.env.STRIPE_SECRET_KEY || "",
   stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET || "",
   resendApiKey: process.env.RESEND_API_KEY || "",

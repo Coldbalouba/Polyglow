@@ -2,7 +2,7 @@
 
 generator client {
   provider      = "prisma-client-js"
-  binaryTargets = ["native", "rhel-openssl-3.0.x"] // rhel target = Netlify/AWS Lambda runtime
+  binaryTargets = ["native", "debian-openssl-3.0.x"] // debian target = the Docker image
 }
 
 datasource db {
