@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "./db";
 import type { Role } from "./constants";
 
-const COOKIE = "tc_session";
+const COOKIE = "pg_session";
 const SESSION_DAYS = 30;
 
 export async function hashPassword(password: string) {

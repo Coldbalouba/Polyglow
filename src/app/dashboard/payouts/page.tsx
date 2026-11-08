@@ -30,7 +30,7 @@ export default async function PayoutsPage({ searchParams }: { searchParams: Sear
         ) : profile.stripeChargesEnabled ? (
           <>
             <p className="text-lg font-semibold text-brand-700">✓ Payouts are connected</p>
-            <p className="muted">Lesson payments go straight into your own Stripe account and are paid to your bank on Stripe&apos;s schedule (usually a few business days). TutConnect never holds your money and charges no withdrawal fees.</p>
+            <p className="muted">Lesson payments go straight into your own Stripe account and are paid to your bank on Stripe&apos;s schedule (usually a few business days). Polyglow never holds your money and charges no withdrawal fees.</p>
             <a className="btn-secondary" href="https://dashboard.stripe.com" target="_blank" rel="noreferrer">Open your Stripe dashboard</a>
           </>
         ) : (
@@ -38,7 +38,7 @@ export default async function PayoutsPage({ searchParams }: { searchParams: Sear
             <p>Connect a Stripe account so students can pay you. It takes about 5 minutes: Stripe asks for your ID and bank details.</p>
             <ul className="muted list-disc space-y-1 pl-5">
               <li>Money goes to <strong>your</strong> Stripe account the moment a student pays.</li>
-              <li>TutConnect takes 1% (first 5 classes) or 5%. Stripe&apos;s card processing fee (about 2.9% + 30¢ in the US) is deducted by Stripe.</li>
+              <li>Polyglow takes 1% (first 5 classes) or 5%. Stripe&apos;s card processing fee (about 2.9% + 30¢ in the US) is deducted by Stripe.</li>
               <li>No withdrawal fees from us, no minimum balance.</li>
             </ul>
             <form action={startPayoutOnboarding} className="flex flex-wrap items-end gap-3">

@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-export const metadata = { title: "TutConnect vs Preply · an honest comparison" };
+export const metadata = { title: "Polyglow vs Preply · an honest comparison" };
 
 const ROWS: [string, string, string][] = [
   ["Commission on a tutor's lessons", "33% for new tutors, falling to 18% only after 400+ hours taught", "1% for a tutor's first 5 lessons, then 5%"],
@@ -22,15 +22,15 @@ const SOURCES = [
 export default function ComparePreply() {
   return (
     <article className="mx-auto max-w-5xl space-y-6">
-      <h1 className="h1">TutConnect vs Preply</h1>
+      <h1 className="h1">Polyglow vs Preply</h1>
       <p className="text-lg text-stone-600">
         Preply is a huge marketplace with lots of tutors and students, and a good video classroom. If size is what you need, it&apos;s a real option.
-        We built TutConnect for people who want lower fees, simpler payments and clearer rules. Here are the differences, with sources.
+        We built Polyglow for people who want lower fees, simpler payments and clearer rules. Here are the differences, with sources.
       </p>
       <div className="card overflow-x-auto p-0">
         <table className="w-full min-w-[640px] text-left text-sm">
           <thead className="bg-stone-50">
-            <tr><th className="p-4">Topic</th><th className="p-4">Preply (as publicly reported)</th><th className="p-4">TutConnect</th></tr>
+            <tr><th className="p-4">Topic</th><th className="p-4">Preply (as publicly reported)</th><th className="p-4">Polyglow</th></tr>
           </thead>
           <tbody>
             {ROWS.map(([topic, them, us]) => (
@@ -57,7 +57,7 @@ export default function ComparePreply() {
         <ul className="list-disc pl-5">
           {SOURCES.map(([label, href]) => <li key={href}><a className="underline" href={href} target="_blank" rel="noreferrer">{label}</a></li>)}
         </ul>
-        <p className="muted">TutConnect is not affiliated with Preply. &quot;Preply&quot; is a trademark of its owner, used here only to compare.</p>
+        <p className="muted">Polyglow is not affiliated with Preply. &quot;Preply&quot; is a trademark of its owner, used here only to compare.</p>
       </div>
       <div className="flex gap-3">
         <Link href="/tutors" className="btn">Find a tutor</Link>

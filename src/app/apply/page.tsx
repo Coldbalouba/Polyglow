@@ -25,7 +25,7 @@ export default async function ApplyPage({ searchParams }: { searchParams: Search
     <div className="space-y-8">
       <div>
         <h1 className="h1">Your tutor application</h1>
-        <p className="muted mt-1">TutConnect is selective. Complete all four steps, then submit for review.</p>
+        <p className="muted mt-1">Polyglow is selective. Complete all four steps, then submit for review.</p>
       </div>
       <Flash error={param(sp, "error")} notice={param(sp, "notice")} />
 
@@ -111,7 +111,7 @@ export default async function ApplyPage({ searchParams }: { searchParams: Search
           <input className="input max-w-md" type="file" name="resume" accept=".pdf,.doc,.docx" disabled={!editable} />
           <button className="btn" disabled={!editable}>Upload</button>
         </form>
-        <p className="muted">PDF, DOC or DOCX, up to 5 MB. Only TutConnect reviewers can see it.</p>
+        <p className="muted">PDF, DOC or DOCX, up to 5 MB. Only Polyglow reviewers can see it.</p>
       </section>
 
       <section id="skill" className="card space-y-6">
@@ -174,7 +174,7 @@ function statusLabel(status: string) {
   switch (status) {
     case "IN_PROGRESS": return "In progress";
     case "SUBMITTED": return "Submitted, under review";
-    case "APPROVED": return "Approved. You are live on TutConnect!";
+    case "APPROVED": return "Approved. You are live on Polyglow!";
     case "REJECTED": return "Changes requested. Update your application and resubmit.";
     default: return status;
   }

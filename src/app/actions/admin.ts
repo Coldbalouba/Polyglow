@@ -55,9 +55,9 @@ export async function decide(formData: FormData) {
   }
   const to = app.tutor.user.email;
   if (decision === "approve") {
-    await sendEmail(to, "You're approved on TutConnect!", `Hi ${app.tutor.user.name},\n\nWelcome aboard. Next steps:\n1. Connect payouts: ${link("/dashboard/payouts")}\n2. Add your available times: ${link("/dashboard")}\n\nYour first 5 classes have a 1% fee, then 5%. You're paid for trial lessons too.${signature}`);
+    await sendEmail(to, "You're approved on Polyglow!", `Hi ${app.tutor.user.name},\n\nWelcome aboard. Next steps:\n1. Connect payouts: ${link("/dashboard/payouts")}\n2. Add your available times: ${link("/dashboard")}\n\nYour first 5 classes have a 1% fee, then 5%. You're paid for trial lessons too.${signature}`);
   } else {
-    await sendEmail(to, "Your TutConnect application needs changes", `Hi ${app.tutor.user.name},\n\nThanks for applying. Our reviewer asked for a few changes:\n\n${notes}\n\nUpdate and resubmit here: ${link("/apply")}${signature}`);
+    await sendEmail(to, "Your Polyglow application needs changes", `Hi ${app.tutor.user.name},\n\nThanks for applying. Our reviewer asked for a few changes:\n\n${notes}\n\nUpdate and resubmit here: ${link("/apply")}${signature}`);
   }
   revalidatePath("/admin");
   back(id, { notice: decision === "approve" ? "Tutor approved and now listed." : "Changes requested. The tutor can resubmit." });

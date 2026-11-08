@@ -35,4 +35,4 @@ export async function sendEmail(to: string | string[], subject: string, text: st
 
 export const link = (path: string) => `${config.appUrl}${path}`;
 
-export const signature = `\n\n— TutConnect\nQuestions? Reply to this email.`;
+export const signature = `\n\n— Polyglow\nQuestions? Reply to this email.`;

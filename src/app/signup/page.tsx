@@ -10,7 +10,7 @@ export default async function SignupPage({ searchParams }: { searchParams: Searc
       <h1 className="h1 mb-2">{role === "TUTOR" ? "Apply to teach" : "Start learning"}</h1>
       <p className="muted mb-6">
         {role === "TUTOR"
-          ? "TutConnect is selective. After signing up you will upload your resume, take a skill check and submit an AI-assisted lesson plan for review."
+          ? "Polyglow is selective. After signing up you will upload your resume, take a skill check and submit an AI-assisted lesson plan for review."
           : "Find a vetted language tutor and book your first lesson."}
       </p>
       <Flash error={param(sp, "error")} />

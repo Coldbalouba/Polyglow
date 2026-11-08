@@ -67,7 +67,7 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
           <dl className="space-y-2 rounded-xl bg-stone-50 p-4 text-sm">
             <Row label="Lesson price" value={formatMoney(booking.priceCents)} strong />
             <Row label="Booking or service fee for the student" value={formatMoney(0)} />
-            <Row label={`TutConnect fee (${formatRate(booking.feeRateBps)}, from the tutor's share)`} value={formatMoney(booking.platformFeeCents)} />
+            <Row label={`Polyglow fee (${formatRate(booking.feeRateBps)}, from the tutor's share)`} value={formatMoney(booking.platformFeeCents)} />
             <Row label="Tutor receives (before Stripe's card fee)" value={formatMoney(booking.tutorPayoutCents)} />
             {booking.refundedCents > 0 && <Row label="Refunded to card" value={formatMoney(booking.refundedCents)} strong />}
           </dl>
@@ -139,7 +139,7 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
                   <option value="OTHER">Something else</option>
                 </select>
                 <textarea name="details" className="input" placeholder="Tell us what happened" />
-                <button className="btn-secondary">Send to TutConnect</button>
+                <button className="btn-secondary">Send to Polyglow</button>
               </form>
             </details>
           )}

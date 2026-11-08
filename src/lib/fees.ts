@@ -1,5 +1,5 @@
 /**
- * TutConnect fee model.
+ * Polyglow fee model.
  *
  * - The platform keeps a small share of each session; the student pays the
  *   tutor's listed price and nothing on top.

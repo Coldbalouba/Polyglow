@@ -9,7 +9,7 @@ import { config, paymentsLive } from "./config";
  *   controller settings (fees paid by the connected account, Stripe covers losses,
  *   full Stripe dashboard). Stripe charges the platform no Connect fees for this setup.
  * - Lessons are "direct charges" on the tutor's account with an application fee
- *   (TutConnect's 1% or 5%). Money lands in the tutor's Stripe balance right away and
+ *   (Polyglow's 1% or 5%). Money lands in the tutor's Stripe balance right away and
  *   is paid out to their bank on Stripe's normal schedule.
  * - Refunds go back to the student's card, never as site credit.
  *
@@ -33,7 +33,7 @@ export async function createTutorAccount(email: string, country?: string) {
       stripe_dashboard: { type: "full" },
     },
     capabilities: { card_payments: { requested: true }, transfers: { requested: true } },
-    business_profile: { mcc: "8299", product_description: "Online language lessons booked through TutConnect" },
+    business_profile: { mcc: "8299", product_description: "Online language lessons booked through Polyglow" },
   });
   return account.id;
 }
@@ -93,7 +93,7 @@ export async function expireCheckout(sessionId: string, accountId: string) {
   }
 }
 
-/** Full refund to the student's card, including TutConnect's fee. */
+/** Full refund to the student's card, including Polyglow's fee. */
 export async function refundLesson(paymentIntentId: string, accountId: string, idempotencyKey: string) {
   return getStripe().refunds.create(
     { payment_intent: paymentIntentId, refund_application_fee: true, reason: "requested_by_customer" },
@@ -101,7 +101,7 @@ export async function refundLesson(paymentIntentId: string, accountId: string, i
   );
 }
 
-/** Give part of TutConnect's fee back to the tutor (used when the final fee is lower than the estimate). */
+/** Give part of Polyglow's fee back to the tutor (used when the final fee is lower than the estimate). */
 export async function refundApplicationFee(applicationFeeId: string, amountCents: number, idempotencyKey: string) {
   if (amountCents <= 0) return;
   await getStripe().applicationFees.createRefund(applicationFeeId, { amount: amountCents }, { idempotencyKey });

@@ -1,4 +1,4 @@
-// TutConnect data model (PostgreSQL: Neon free tier in production, any Postgres locally).
+// Polyglow data model (PostgreSQL: Neon free tier in production, any Postgres locally).
 
 generator client {
   provider      = "prisma-client-js"

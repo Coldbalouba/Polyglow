@@ -36,7 +36,7 @@ export async function signup(formData: FormData) {
     },
   });
   await createSession(user.id);
-  await sendEmail(email, "Welcome to TutConnect",
+  await sendEmail(email, "Welcome to Polyglow",
     role === "TUTOR"
       ? `Hi ${name},\n\nThanks for applying to teach. Finish your application here: ${link("/apply")}\nWe review every application by hand.${signature}`
       : `Hi ${name},\n\nWelcome! Find a vetted tutor here: ${link("/tutors")}\nPay per lesson, no subscriptions, no expiring credits.${signature}`);
@@ -70,7 +70,7 @@ export async function requestPasswordReset(formData: FormData) {
     await prisma.passwordResetToken.create({
       data: { userId: user.id, tokenHash: sha256(token), expiresAt: new Date(Date.now() + 3600_000) },
     });
-    await sendEmail(email, "Reset your TutConnect password",
+    await sendEmail(email, "Reset your Polyglow password",
       `Hi ${user.name},\n\nReset your password here (valid for 1 hour):\n${link(`/reset?token=${token}`)}\n\nIf you didn't ask for this, ignore this email.${signature}`);
   }
   // Same answer either way, so the form can't be used to discover accounts.

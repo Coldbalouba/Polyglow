@@ -28,7 +28,7 @@ to the lesson length. Keep student talking time high. Plain markdown, no preambl
  * Tutors are expected to review and edit the draft before submitting it.
  */
 export async function draftLessonPlan(req: LessonPlanRequest): Promise<LessonPlanDraft> {
-  if (!process.env.ANTHROPIC_API_KEY) return { text: templatePlan(req), tool: "TutConnect template (no AI key configured)" };
+  if (!process.env.ANTHROPIC_API_KEY) return { text: templatePlan(req), tool: "Polyglow template (no AI key configured)" };
 
   const client = new Anthropic();
   const response = await client.beta.messages.create({

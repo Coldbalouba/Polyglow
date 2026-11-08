@@ -1,10 +1,10 @@
 /**
  * Demo data. Run with `npm run db:seed`. All demo accounts use the password "password123".
- *   admin@tutconnect.dev    — admin (reviews applications)
- *   student@tutconnect.dev  — student
- *   sofia@tutconnect.dev    — approved Spanish tutor (past the 5-class intro period)
- *   kenji@tutconnect.dev    — approved Japanese tutor (new, on the 1% intro rate)
- *   amelie@tutconnect.dev   — French tutor whose application is waiting for review
+ *   admin@polyglow.dev    — admin (reviews applications)
+ *   student@polyglow.dev  — student
+ *   sofia@polyglow.dev    — approved Spanish tutor (past the 5-class intro period)
+ *   kenji@polyglow.dev    — approved Japanese tutor (new, on the 1% intro rate)
+ *   amelie@polyglow.dev   — French tutor whose application is waiting for review
  */
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
@@ -52,9 +52,9 @@ async function main() {
   const passwordHash = await bcrypt.hash("password123", 10);
   const mk = (email: string, name: string, role: string) => prisma.user.create({ data: { email, name, role, passwordHash } });
 
-  await mk("admin@tutconnect.dev", "Ada Admin", "ADMIN");
-  const student = await mk("student@tutconnect.dev", "Sam Student", "STUDENT");
-  const student2 = await mk("lena@tutconnect.dev", "Lena Park", "STUDENT");
+  await mk("admin@polyglow.dev", "Ada Admin", "ADMIN");
+  const student = await mk("student@polyglow.dev", "Sam Student", "STUDENT");
+  const student2 = await mk("lena@polyglow.dev", "Lena Park", "STUDENT");
 
   async function tutor(opts: {
     email: string; name: string; country: string; headline: string; bio: string; rate: number;
@@ -97,19 +97,19 @@ async function main() {
   }
 
   const sofia = await tutor({
-    email: "sofia@tutconnect.dev", name: "Sofía Martínez", country: "Spain", rate: 3000, status: "APPROVED",
+    email: "sofia@polyglow.dev", name: "Sofía Martínez", country: "Spain", rate: 3000, status: "APPROVED",
     headline: "Conversational Spanish for travellers and professionals",
     bio: "Native speaker from Madrid with 8 years of teaching experience and a DELE examiner certificate. My lessons are 70% you talking, with clear feedback after every activity.",
     languages: [["Spanish", "NATIVE"], ["English", "C1"]],
   });
   const kenji = await tutor({
-    email: "kenji@tutconnect.dev", name: "Kenji Watanabe", country: "Japan", rate: 2500, status: "APPROVED", trialPriceCents: 1000,
+    email: "kenji@polyglow.dev", name: "Kenji Watanabe", country: "Japan", rate: 2500, status: "APPROVED", trialPriceCents: 1000,
     headline: "Japanese from zero to JLPT N3, step by step",
     bio: "Tokyo-born teacher who loves helping beginners read their first manga. I build every lesson around your goals, with spaced-repetition vocab decks between classes.",
     languages: [["Japanese", "NATIVE"]],
   });
   await tutor({
-    email: "amelie@tutconnect.dev", name: "Amélie Durand", country: "France", rate: 2800, status: "SUBMITTED",
+    email: "amelie@polyglow.dev", name: "Amélie Durand", country: "France", rate: 2800, status: "SUBMITTED",
     headline: "French pronunciation and DELF exam coaching",
     bio: "Former high-school teacher in Lyon. I specialise in pronunciation and helping adult learners pass the DELF B1 and B2 exams with confidence.",
     languages: [["French", "NATIVE"]],
@@ -158,7 +158,7 @@ async function main() {
       studentId: student.id, tutorId: kenji.id, slotId: kSlot.id, language: "Japanese", startsAt: kSlot.startsAt,
       durationMin: 60, priceCents: kFee.priceCents, feeRateBps: kFee.feeRateBps, platformFeeCents: kFee.platformFeeCents,
       tutorPayoutCents: kFee.tutorPayoutCents, status: "CONFIRMED", paymentRef: "seed_k", isTrial: false,
-      meetingUrl: `https://meet.jit.si/TutConnect-seed-k`, confirmedAt: new Date(),
+      meetingUrl: `https://meet.jit.si/Polyglow-seed-k`, confirmedAt: new Date(),
     },
   });
 
@@ -170,7 +170,7 @@ async function main() {
     data: {
       studentId: student.id, tutorId: sofia.id, slotId: endedSlot.id, language: "Spanish", startsAt: endedStart, durationMin: 60,
       priceCents: eFee.priceCents, feeRateBps: eFee.feeRateBps, platformFeeCents: eFee.platformFeeCents, tutorPayoutCents: eFee.tutorPayoutCents,
-      status: "CONFIRMED", paymentRef: "seed_e", meetingUrl: "https://meet.jit.si/TutConnect-seed-e", confirmedAt: new Date(Date.now() - 2 * 86400_000),
+      status: "CONFIRMED", paymentRef: "seed_e", meetingUrl: "https://meet.jit.si/Polyglow-seed-e", confirmedAt: new Date(Date.now() - 2 * 86400_000),
     },
   });
 

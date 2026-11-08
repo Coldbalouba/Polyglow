@@ -1,4 +1,4 @@
-# Running TutConnect on your own server
+# Running Polyglow on your own server
 
 One small rented server (VPS) runs everything: the app, the Postgres database, HTTPS, hourly housekeeping and daily backups. No free-tier platforms.
 
@@ -31,13 +31,13 @@ Order **OVHcloud VPS-1** with **Ubuntu 24.04**, in the region closest to most us
 ### 3. Prepare the server (about 5 minutes)
 ```bash
 ssh root@YOUR_SERVER_IP
-curl -fsSL https://raw.githubusercontent.com/YOUR_GITHUB/YOUR_REPO/main/deploy/setup-server.sh -o setup.sh   # or copy the file over
+curl -fsSL https://raw.githubusercontent.com/Coldbalouba/Polyglow/main/deploy/setup-server.sh -o setup.sh   # or copy the file over
 bash setup.sh
 ```
 This installs Docker, turns on the firewall (SSH, 80, 443 only), automatic security updates, fail2ban and a swap file.
 For a private repo, create a GitHub deploy key or a fine-grained token with read access, then:
 ```bash
-git clone https://github.com/YOUR_GITHUB/YOUR_REPO.git /opt/app && cd /opt/app
+git clone https://github.com/Coldbalouba/Polyglow.git /opt/app && cd /opt/app
 cp .env.example .env && nano .env
 ```
 Fill in at least `DOMAIN`, `APP_URL`, `POSTGRES_PASSWORD`, `CRON_SECRET` (generate each secret with `openssl rand -hex 32`) and `ADMIN_EMAILS`.
@@ -77,7 +77,7 @@ To go live: **Activate payments** in Stripe, swap in `sk_live_...`, create a liv
 | See logs | `docker compose logs -f app` |
 | Status | `docker compose ps` |
 | Backups | daily in `/opt/app/backups/` (kept 14 days). Copy them off the server now and then: `scp root@IP:/opt/app/backups/*.gz .` |
-| Restore a backup | `gunzip -c backups/FILE.sql.gz \| docker compose exec -T db psql -U tutconnect tutconnect` (on an empty database) |
+| Restore a backup | `gunzip -c backups/FILE.sql.gz \| docker compose exec -T db psql -U polyglow polyglow` (on an empty database) |
 
 OVHcloud's VPS-1 also includes an automatic daily backup of the whole server.
 

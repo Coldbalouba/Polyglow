@@ -1,8 +1,8 @@
-# TutConnect
+# Polyglow
 
 A selective, languages-only tutoring marketplace that treats tutors fairly and keeps students' interests first.
 
-- **Fair fees.** Students pay the tutor's listed price, nothing on top. TutConnect keeps **1%** on a tutor's first **5** completed classes and **5%** after that. The fee comes out of the tutor's share and is settled when each class is completed.
+- **Fair fees.** Students pay the tutor's listed price, nothing on top. Polyglow keeps **1%** on a tutor's first **5** completed classes and **5%** after that. The fee comes out of the tutor's share and is settled when each class is completed.
 - **Selective onboarding.** Before going live, every tutor must:
   1. complete a profile and list the languages they teach (Native, C2 or C1 only),
   2. upload a **resume**,
@@ -33,11 +33,11 @@ Demo accounts (password `password123` for all):
 
 | Email | Role |
 |---|---|
-| `admin@tutconnect.dev` | Admin: review applications and disputes |
-| `student@tutconnect.dev` | Student, with one finished lesson waiting to be confirmed |
-| `sofia@tutconnect.dev` | Approved Spanish tutor, past the intro period (5%) |
-| `kenji@tutconnect.dev` | Approved Japanese tutor on the 1% intro rate, $10 trial |
-| `amelie@tutconnect.dev` | French tutor whose application is waiting for review |
+| `admin@polyglow.dev` | Admin: review applications and disputes |
+| `student@polyglow.dev` | Student, with one finished lesson waiting to be confirmed |
+| `sofia@polyglow.dev` | Approved Spanish tutor, past the intro period (5%) |
+| `kenji@polyglow.dev` | Approved Japanese tutor on the 1% intro rate, $10 trial |
+| `amelie@polyglow.dev` | French tutor whose application is waiting for review |
 
 Without Stripe keys the site runs in **demo mode** (a "Pay (demo)" button, no real money). Without a Resend key, emails print to the server log. All settings are listed in `.env.example`.
 
@@ -47,7 +47,7 @@ Scripts: `npm test`, `npm run typecheck`, `npm run lint`, `npm run build`.
 
 Each is a direct answer to common complaints about big tutoring marketplaces. Rules live in `src/lib/policy.ts` with tests.
 
-| Problem elsewhere | TutConnect |
+| Problem elsewhere | Polyglow |
 |---|---|
 | 18–33% commission | 1% on a tutor's first 5 completed lessons, then 5% |
 | Platform keeps 100% of trial lessons | Tutor is paid for trials and sets the trial price (or makes it free) |

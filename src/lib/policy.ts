@@ -1,5 +1,5 @@
 /**
- * TutConnect's student- and tutor-friendly policies, as pure functions.
+ * Polyglow's student- and tutor-friendly policies, as pure functions.
  * Each rule is a deliberate answer to a common complaint about big tutoring marketplaces.
  */
 
@@ -111,5 +111,5 @@ export function isSafeMeetingLink(url: string) {
 }
 
 export function jitsiRoom(bookingId: string) {
-  return `https://meet.jit.si/TutConnect-${bookingId}`;
+  return `https://meet.jit.si/Polyglow-${bookingId}`;
 }

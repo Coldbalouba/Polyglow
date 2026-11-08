@@ -6,7 +6,7 @@ export const config = {
   stripeSecretKey: process.env.STRIPE_SECRET_KEY || "",
   stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET || "",
   resendApiKey: process.env.RESEND_API_KEY || "",
-  emailFrom: process.env.EMAIL_FROM || "TutConnect <hello@example.com>",
+  emailFrom: process.env.EMAIL_FROM || "Polyglow <hello@example.com>",
   supportEmail: process.env.SUPPORT_EMAIL || "support@example.com",
   adminEmails: (process.env.ADMIN_EMAILS || "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean),
   cronSecret: process.env.CRON_SECRET || "",

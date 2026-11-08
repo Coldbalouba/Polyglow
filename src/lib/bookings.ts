@@ -149,7 +149,7 @@ async function confirmBooking(
     sendEmail(b.student.email, "Your lesson is confirmed",
       `Hi ${b.student.name},\n\nYou're booked with ${b.tutor.user.name}: ${summary}.\nPaid: ${formatMoney(b.priceCents)} (no booking fees).\nJoin link: ${meetingUrl}\nBooking: ${link(`/bookings/${b.id}`)}\n\nFree cancellation up to 12 hours before. Refunds go back to your card.${signature}`),
     sendEmail(b.tutor.user.email, "New lesson booked",
-      `Hi ${b.tutor.user.name},\n\n${b.student.name} booked a ${summary}.\nYou earn ${formatMoney(b.tutorPayoutCents)} (TutConnect fee ${formatMoney(b.platformFeeCents)}; card processing is deducted by Stripe).\nJoin link: ${meetingUrl}\nBooking: ${link(`/bookings/${b.id}`)}${signature}`),
+      `Hi ${b.tutor.user.name},\n\n${b.student.name} booked a ${summary}.\nYou earn ${formatMoney(b.tutorPayoutCents)} (Polyglow fee ${formatMoney(b.platformFeeCents)}; card processing is deducted by Stripe).\nJoin link: ${meetingUrl}\nBooking: ${link(`/bookings/${b.id}`)}${signature}`),
   ]);
 }
 

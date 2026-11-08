@@ -1,17 +1,17 @@
 import Link from "next/link";
 import { DISPUTE_WINDOW_HOURS, FREE_CANCEL_HOURS, NEW_TUTOR_BOOST, RANKING_PRIOR_RATING, RANKING_PRIOR_WEIGHT } from "@/lib/policy";
 
-export const metadata = { title: "How TutConnect works · fees, refunds, ranking" };
+export const metadata = { title: "How Polyglow works · fees, refunds, ranking" };
 
 export default function HowItWorks() {
   return (
     <article className="mx-auto max-w-3xl space-y-8">
-      <h1 className="h1">How TutConnect works</h1>
+      <h1 className="h1">How Polyglow works</h1>
       <p className="text-lg text-stone-600">Plain rules, written down, the same for everyone.</p>
 
       <Section id="fees" title="Fees">
         <li>Students pay the tutor&apos;s price. <strong>No booking, service or processing fee on top.</strong></li>
-        <li>TutConnect keeps <strong>1%</strong> of each of a tutor&apos;s first 5 completed lessons, then <strong>5%</strong>. That&apos;s it.</li>
+        <li>Polyglow keeps <strong>1%</strong> of each of a tutor&apos;s first 5 completed lessons, then <strong>5%</strong>. That&apos;s it.</li>
         <li>Trial lessons are normal lessons: the tutor is paid for them (minus the same 1–5%). Tutors choose the trial price, or offer it free.</li>
         <li>Card processing is charged by Stripe, not us (about 2.9% + 30¢ in the US; it varies by country) and comes out of the tutor&apos;s share. We show this openly instead of hiding it.</li>
       </Section>

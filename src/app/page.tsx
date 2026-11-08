@@ -14,7 +14,7 @@ export default async function Home() {
             Learn a language with tutors who are actually appreciated.
           </h1>
           <p className="text-lg text-stone-600">
-            Every TutConnect tutor sent a resume, passed a skill check and submitted a real lesson plan before
+            Every Polyglow tutor sent a resume, passed a skill check and submitted a real lesson plan before
             teaching a single class. And because we only take 1–5%, more of what you pay goes to your tutor.
           </p>
           <div className="flex flex-wrap gap-3">

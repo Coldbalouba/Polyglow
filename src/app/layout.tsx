@@ -5,7 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { logout } from "@/app/actions/auth";
 
 export const metadata: Metadata = {
-  title: "TutConnect — language tutors who are actually appreciated",
+  title: "Polyglow — language tutors who are actually appreciated",
   description: "A selective language-tutoring marketplace with fair fees: 1% on a tutor's first five classes, 5% after.",
 };
 
@@ -19,7 +19,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         ) : null}
         <header className="border-b border-stone-200 bg-white">
           <nav className="container-page flex h-16 items-center justify-between gap-4">
-            <Link href="/" className="text-lg font-bold text-brand-700">TutConnect</Link>
+            <Link href="/" className="text-lg font-bold text-brand-700">Polyglow</Link>
             <div className="flex items-center gap-4 text-sm">
               <Link href="/tutors" className="hover:text-brand-600">Find a tutor</Link>
               <Link href="/how-it-works" className="hidden hover:text-brand-600 sm:inline">How it works</Link>
@@ -44,10 +44,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </header>
         <main className="container-page py-10">{children}</main>
         <footer className="border-t border-stone-200 py-8 text-center muted space-y-2">
-          <p>TutConnect · Languages only · 1% fee on a tutor&apos;s first 5 lessons, 5% after · No subscriptions</p>
+          <p>Polyglow · Languages only · 1% fee on a tutor&apos;s first 5 lessons, 5% after · No subscriptions</p>
           <p className="space-x-4">
             <Link href="/how-it-works" className="underline">How it works</Link>
-            <Link href="/compare/preply" className="underline">TutConnect vs Preply</Link>
+            <Link href="/compare/preply" className="underline">Polyglow vs Preply</Link>
             <Link href="/terms" className="underline">Terms</Link>
             <Link href="/privacy" className="underline">Privacy</Link>
           </p>

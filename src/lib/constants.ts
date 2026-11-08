@@ -1,4 +1,4 @@
-/** TutConnect is languages-only. Tutors can only teach languages from this list. */
+/** Polyglow is languages-only. Tutors can only teach languages from this list. */
 export const LANGUAGES = [
   "Arabic", "Chinese (Mandarin)", "Dutch", "English", "French", "German", "Greek",
   "Hebrew", "Hindi", "Italian", "Japanese", "Korean", "Polish", "Portuguese",

@@ -1,17 +1,17 @@
-# Runs TutConnect on one small VPS: app + Postgres + Caddy (automatic HTTPS) + jobs (hourly tasks, daily backups).
+# Runs Polyglow on one small VPS: app + Postgres + Caddy (automatic HTTPS) + jobs (hourly tasks, daily backups).
 # Usage: cp .env.example .env  (fill it in)  &&  docker compose up -d --build
 services:
   db:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_DB: tutconnect
-      POSTGRES_USER: tutconnect
+      POSTGRES_DB: polyglow
+      POSTGRES_USER: polyglow
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U tutconnect -d tutconnect"]
+      test: ["CMD-SHELL", "pg_isready -U polyglow -d polyglow"]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -21,8 +21,8 @@ services:
     restart: unless-stopped
     env_file: .env
     environment:
-      DATABASE_URL: postgresql://tutconnect:${POSTGRES_PASSWORD}@db:5432/tutconnect
-      DIRECT_URL: postgresql://tutconnect:${POSTGRES_PASSWORD}@db:5432/tutconnect
+      DATABASE_URL: postgresql://polyglow:${POSTGRES_PASSWORD}@db:5432/polyglow
+      DIRECT_URL: postgresql://polyglow:${POSTGRES_PASSWORD}@db:5432/polyglow
     depends_on:
       db:
         condition: service_healthy

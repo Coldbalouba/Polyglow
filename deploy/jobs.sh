@@ -8,13 +8,13 @@ while true; do
     && echo " cron ok $(date -u)" || echo "cron failed $(date -u)"
   today=$(date -u +%F)
   if [ "$today" != "$last_backup_day" ]; then
-    if pg_dump -h db -U tutconnect tutconnect | gzip > "/backups/tutconnect-$today.sql.gz.tmp"; then
-      mv "/backups/tutconnect-$today.sql.gz.tmp" "/backups/tutconnect-$today.sql.gz"
-      find /backups -name 'tutconnect-*.sql.gz' -mtime +"${BACKUP_KEEP_DAYS}" -delete
+    if pg_dump -h db -U polyglow polyglow | gzip > "/backups/polyglow-$today.sql.gz.tmp"; then
+      mv "/backups/polyglow-$today.sql.gz.tmp" "/backups/polyglow-$today.sql.gz"
+      find /backups -name 'polyglow-*.sql.gz' -mtime +"${BACKUP_KEEP_DAYS}" -delete
       last_backup_day="$today"
       echo "backup ok $today"
     else
-      rm -f "/backups/tutconnect-$today.sql.gz.tmp"; echo "backup failed $today"
+      rm -f "/backups/polyglow-$today.sql.gz.tmp"; echo "backup failed $today"
     fi
   fi
   sleep 3600

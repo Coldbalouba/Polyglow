@@ -1,4 +1,4 @@
-export const metadata = { title: "Privacy Policy · TutConnect" };
+export const metadata = { title: "Privacy Policy · Polyglow" };
 
 export default function Privacy() {
   return (
