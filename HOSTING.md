@@ -4,18 +4,29 @@ One small rented server (VPS) runs everything: the app, the Postgres database, H
 
 ## What it costs
 
-| Item | Pick | Price | Per year |
-|---|---|---|---|
-| Server | **OVHcloud VPS-1** (2 vCPU, 4 GB RAM, 40 GB NVMe, daily backup included) | €4.49/month, or about €3.81/month paid 12 months upfront | ~$52–62 |
-| Domain | `.com` at Cloudflare Registrar (at cost) | ~$10.46–11.17/year | ~$11 |
-| HTTPS certificate | Let's Encrypt through Caddy | free | $0 |
-| Payments | Stripe Connect | no monthly fee; Stripe takes its card fee per payment from the tutor's share | $0 fixed |
-| Email | Amazon SES over SMTP (pay as you go) | $0.10 per 1,000 emails | ~$1 |
-| **Total** | | **about $5.50/month** | **about $65 in year one** |
+You need one server with **at least 2 GB of RAM** (the app, database and HTTPS together use about 700 MB). Three good options, cheapest first. Prices were checked in November 2026 and "+ VAT" means VAT is added if you live in the EU. Check before ordering.
 
-Alternatives: Hetzner CX23 (2 vCPU, 4 GB) is €5.99/month (~$83/yr) and very reliable. Contabo is cheaper per GB but slower to support. Prices were checked in November 2026; Hetzner and netcup raised prices in 2026, so check before ordering.
+| Server | Specs | Price | Per year | Catch |
+|---|---|---|---|---|
+| **netcup VPS nano G11s** (cheapest) | 2 vCPU, 2 GB RAM, 60 GB SSD, Germany | €2.59/month + VAT | ~$36–43 | Sold in limited batches, so it isn't always in stock; 6-month minimum; use the prebuilt image (see "Small servers" below) |
+| **OVHcloud VPS-1** (my pick) | 2 vCPU, 4 GB RAM, 40 GB NVMe, daily backup included | €4.49/month, about €3.81/month paid yearly | ~$53–62 | None worth worrying about; always available; monthly or yearly |
+| netcup VPS 500 G12 | 2 vCPU, 4 GB RAM, 128 GB NVMe | €4.97/month + VAT | ~$69–82 | Costs more than OVHcloud for the same RAM |
 
-**$10 is not enough for a year.** It covers the domain, or about two months of the server. A realistic budget is about $65 for the first year.
+Skip these: 1 GB servers such as netcup VPS pico (€1.55) are too tight and will crash under load; IONOS's $2 VPS XS is no longer sold; Hetzner CX23 is now €5.99+ and DigitalOcean, Vultr and Linode charge $5–24 for less.
+
+Everything else:
+
+| Item | Pick | Per year |
+|---|---|---|
+| Domain | `polyglow.com` (or similar) at Cloudflare Registrar or Porkbun | ~$11 |
+| HTTPS certificate | Let's Encrypt through Caddy (built in) | $0 |
+| Payments | Stripe Connect: no monthly fee; Stripe takes its card fee per payment from the tutor's share | $0 fixed |
+| Email | Amazon SES over SMTP: $0.10 per 1,000 emails | ~$1 |
+| Building the app | GitHub Actions (included in your GitHub account: 2,000 minutes/month on private repos) | $0 |
+
+**Totals for year one:** about **$50** on the netcup nano (about $4/month) or about **$65** on OVHcloud VPS-1 (about $5.50/month).
+
+**$10 is not enough for a year.** It covers the domain, or two to three months of the cheapest server.
 
 ## Steps
 
@@ -26,20 +37,18 @@ Cloudflare Registrar (dash.cloudflare.com → Domain Registration) or Porkbun. T
 (On Cloudflare, set both to **DNS only**, grey cloud, so Caddy can get the certificate.)
 
 ### 2. Rent the server
-Order **OVHcloud VPS-1** with **Ubuntu 24.04**, in the region closest to most users. Add your SSH key during checkout if you have one. You'll get an IP address and root login by email.
+Order **OVHcloud VPS-1** (or the netcup nano if it's in stock) with **Ubuntu 24.04**, in the region closest to most users. Add your SSH key during checkout if you have one. You'll get an IP address and root login by email.
 
 ### 3. Prepare the server (about 5 minutes)
+The repo is private, so first make a read-only token: GitHub → Settings → Developer settings → **Fine-grained tokens** → Generate, repository **Coldbalouba/Polyglow**, permission **Contents: Read-only**. Then:
 ```bash
 ssh root@YOUR_SERVER_IP
-curl -fsSL https://raw.githubusercontent.com/Coldbalouba/Polyglow/main/deploy/setup-server.sh -o setup.sh   # or copy the file over
-bash setup.sh
-```
-This installs Docker, turns on the firewall (SSH, 80, 443 only), automatic security updates, fail2ban and a swap file.
-For a private repo, create a GitHub deploy key or a fine-grained token with read access, then:
-```bash
-git clone https://github.com/Coldbalouba/Polyglow.git /opt/app && cd /opt/app
+apt-get update && apt-get install -y git
+git clone https://github.com/Coldbalouba/Polyglow.git /opt/app   # username: your GitHub name, password: the token
+cd /opt/app && bash deploy/setup-server.sh
 cp .env.example .env && nano .env
 ```
+`setup-server.sh` installs Docker, turns on the firewall (SSH, 80, 443 only), automatic security updates, fail2ban and a swap file.
 Fill in at least `DOMAIN`, `APP_URL`, `POSTGRES_PASSWORD`, `CRON_SECRET` (generate each secret with `openssl rand -hex 32`) and `ADMIN_EMAILS`.
 
 ### 4. Start it
@@ -68,6 +77,18 @@ Any other SMTP provider works the same way, as does `RESEND_API_KEY`.
 Test it: approve a tutor, connect payouts with Stripe's test data (phone `000 000 0000`, code `000000`), add a slot, book as a student with card `4242 4242 4242 4242`. Check the booking turns **Confirmed** and the payment shows in Stripe with your fee. Then try a cancellation and a "Report a problem".
 
 To go live: **Activate payments** in Stripe, swap in `sk_live_...`, create a live Connect webhook, update `.env`, `docker compose up -d`.
+
+## Small servers (2 GB): use the prebuilt image
+Building the app needs more memory than running it. On a 2 GB server, let GitHub build it instead:
+1. Every push to `main` runs the **CI** workflow (Actions tab), which tests the code and publishes the image `ghcr.io/coldbalouba/polyglow`.
+2. Make a classic token with only the **read:packages** scope (GitHub → Settings → Developer settings → Tokens (classic)). On the server:
+   `echo YOUR_TOKEN | docker login ghcr.io -u Coldbalouba --password-stdin`
+3. In `.env` set `APP_IMAGE="ghcr.io/coldbalouba/polyglow:latest"`.
+4. `docker compose pull app && docker compose up -d --no-build`. From then on `./deploy/update.sh` pulls instead of building.
+
+On a 4 GB server you can skip this and build on the server.
+
+The containers are capped so they can't starve each other (app 512 MB, database 384 MB, Caddy and jobs 128 MB each), and Postgres is tuned for small machines. `https://yourdomain.com/api/health` returns `{"ok":true}` when the app and database are up; point a monitor such as UptimeRobot at it if you want alerts.
 
 ## Day-to-day
 

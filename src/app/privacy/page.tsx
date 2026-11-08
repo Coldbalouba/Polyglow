@@ -17,7 +17,7 @@ export default function Privacy() {
       <h2 className="h2">Who we share it with</h2>
       <p>Service providers that run the site: Stripe (payments), our email provider (for example Amazon SES or Resend), and our server host (for example OVHcloud), where the database also runs, and, for tutors who use the AI draft feature, Anthropic (lesson-plan drafting; only the lesson details you type are sent). Your tutor or student sees your name, messages and booking details.</p>
       <h2 className="h2">Your choices</h2>
-      <p>You can ask us to export or delete your data by emailing support. We keep payment records as long as tax law requires.</p>
+      <p>You can download your data or delete your account yourself, any time, from your Account page. Deleting removes your name, email, password, profile and resume at once. We keep lesson and payment records without your name as long as tax law requires.</p>
       <h2 className="h2">Cookies</h2>
       <p>We use one essential cookie to keep you logged in. No tracking cookies.</p>
       <p className="muted">This is a starting template. Have a lawyer review it, especially if you serve users in the EU/UK (GDPR).</p>

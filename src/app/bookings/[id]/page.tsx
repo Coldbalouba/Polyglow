@@ -8,6 +8,8 @@ import { confirmFromCheckout } from "@/lib/bookings";
 import { canOpenDispute, canStudentConfirm, FREE_CANCEL_HOURS } from "@/lib/policy";
 import { Flash, param, type SearchParams } from "@/components/Flash";
 import { LocalTime } from "@/components/LocalTime";
+import { googleCalendarUrl } from "@/lib/ics";
+import { calendarEventFor } from "@/lib/booking-calendar";
 import { cancel, confirmLesson, payDemo, reportProblem, review, sendMessage } from "@/app/actions/bookings";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -62,6 +64,12 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
 
           {["CONFIRMED", "DISPUTED", "COMPLETED"].includes(booking.status) && booking.meetingUrl && (
             <a href={booking.meetingUrl} target="_blank" rel="noreferrer" className="btn w-full">Join lesson video</a>
+          )}
+          {booking.status === "CONFIRMED" && booking.startsAt > new Date() && (
+            <div className="flex flex-wrap gap-2 text-sm">
+              <a href={`/bookings/${booking.id}/calendar`} className="btn-secondary">Add to calendar (.ics)</a>
+              <a href={googleCalendarUrl(calendarEventFor(booking, isStudent))} target="_blank" rel="noreferrer" className="btn-secondary">Add to Google Calendar</a>
+            </div>
           )}
 
           <dl className="space-y-2 rounded-xl bg-stone-50 p-4 text-sm">

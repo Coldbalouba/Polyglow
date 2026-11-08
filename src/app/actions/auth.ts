@@ -7,6 +7,17 @@ import { prisma } from "@/lib/db";
 import { createSession, destroySession, hashPassword, verifyPassword } from "@/lib/auth";
 import { config } from "@/lib/config";
 import { link, sendEmail, signature } from "@/lib/email";
+import { rateLimit, resetRateLimit } from "@/lib/rate-limit";
+import { headers } from "next/headers";
+
+/** The visitor's IP as set by Caddy (it overwrites X-Forwarded-For with the real client address). */
+async function clientIp() {
+  const h = await headers();
+  const xff = h.get("x-forwarded-for");
+  return (xff ? xff.split(",").pop()!.trim() : h.get("x-real-ip")) || "unknown";
+}
+
+const tooMany = (sec: number) => `Too many attempts. Try again in ${Math.ceil(sec / 60)} minute${sec > 60 ? "s" : ""}.`;
 
 const signupSchema = z.object({
   name: z.string().trim().min(2, "Please enter your name").max(80),
@@ -17,6 +28,8 @@ const signupSchema = z.object({
 });
 
 export async function signup(formData: FormData) {
+  const limited = rateLimit(`signup:${await clientIp()}`, 10, 3600_000);
+  if (!limited.ok) redirect(`/signup?error=${encodeURIComponent(tooMany(limited.retryAfterSec))}`);
   const parsed = signupSchema.safeParse(Object.fromEntries(formData));
   const roleParam = formData.get("role") === "TUTOR" ? "TUTOR" : "STUDENT";
   if (!parsed.success) redirect(`/signup?role=${roleParam}&error=${encodeURIComponent(parsed.error.issues[0].message)}`);
@@ -46,13 +59,20 @@ export async function signup(formData: FormData) {
 export async function login(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
+  const ip = await clientIp();
+  // Per account and per IP, so one attacker can't lock everyone out and can't spray one account.
+  for (const key of [`login:${email}`, `login-ip:${ip}`]) {
+    const r = rateLimit(key, key.startsWith("login:") ? 8 : 30, 15 * 60_000);
+    if (!r.ok) redirect(`/login?error=${encodeURIComponent(tooMany(r.retryAfterSec))}`);
+  }
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user || !(await verifyPassword(password, user.passwordHash))) {
     await new Promise((r) => setTimeout(r, 400)); // slow down guessing a little
     redirect(`/login?error=${encodeURIComponent("Wrong email or password")}`);
   }
+  resetRateLimit(`login:${email}`);
   await createSession(user.id);
-  redirect(user.role === "ADMIN" ? "/admin" : user.role === "TUTOR" ? "/dashboard" : "/dashboard");
+  redirect(user.role === "ADMIN" ? "/admin" : "/dashboard");
 }
 
 export async function logout() {
@@ -64,6 +84,10 @@ const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");
 
 export async function requestPasswordReset(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const ip = await clientIp();
+  if (!rateLimit(`reset:${email}`, 3, 3600_000).ok || !rateLimit(`reset-ip:${ip}`, 10, 3600_000).ok) {
+    redirect(`/forgot?error=${encodeURIComponent("Too many reset requests. Try again in an hour.")}`);
+  }
   const user = await prisma.user.findUnique({ where: { email } });
   if (user) {
     const token = randomBytes(32).toString("hex");

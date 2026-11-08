@@ -7,6 +7,7 @@ import { statsFor } from "@/lib/tutor-stats";
 import { paymentsLive } from "@/lib/config";
 import { param, type SearchParams } from "@/components/Flash";
 import { Stars } from "@/components/Stars";
+import { LocalTime } from "@/components/LocalTime";
 
 export default async function TutorsPage({ searchParams }: { searchParams: SearchParams }) {
   const sp = await searchParams;
@@ -14,17 +15,35 @@ export default async function TutorsPage({ searchParams }: { searchParams: Searc
   const q = (param(sp, "q") ?? "").trim();
   const maxPrice = Number(param(sp, "maxPrice") ?? "") || undefined;
   const sort = param(sp, "sort") ?? "rating";
+  const trial = param(sp, "trial") === "1";
+  const thisWeek = param(sp, "week") === "1";
+  const now = new Date();
+  const weekEnd = new Date(now.getTime() + 7 * 24 * 3600 * 1000);
 
   const where: Prisma.TutorProfileWhereInput = {
     status: "APPROVED",
     ...(paymentsLive() ? { stripeChargesEnabled: true } : {}),
     ...(language ? { languages: { some: { language } } } : {}),
     ...(maxPrice ? { hourlyRateCents: { lte: maxPrice * 100 } } : {}),
-    ...(q ? { OR: [{ headline: { contains: q } }, { bio: { contains: q } }, { user: { name: { contains: q } } }] } : {}),
+    ...(trial ? { trialPriceCents: { not: null } } : {}),
+    ...(thisWeek ? { slots: { some: { isBooked: false, startsAt: { gt: now, lte: weekEnd } } } } : {}),
+    ...(q
+      ? {
+          OR: [
+            { headline: { contains: q, mode: "insensitive" } },
+            { bio: { contains: q, mode: "insensitive" } },
+            { user: { name: { contains: q, mode: "insensitive" } } },
+          ],
+        }
+      : {}),
   };
   const tutors = await prisma.tutorProfile.findMany({
     where,
-    include: { user: true, languages: true },
+    include: {
+      user: true,
+      languages: true,
+      slots: { where: { isBooked: false, startsAt: { gt: now } }, orderBy: { startsAt: "asc" }, take: 1 },
+    },
     orderBy: sort === "price" ? { hourlyRateCents: "asc" } : { createdAt: "desc" },
     take: 200,
   });
@@ -55,6 +74,10 @@ export default async function TutorsPage({ searchParams }: { searchParams: Searc
           </select>
           <button className="btn">Go</button>
         </div>
+        <div className="flex flex-wrap gap-4 text-sm sm:col-span-5">
+          <label className="flex items-center gap-2"><input type="checkbox" name="trial" value="1" defaultChecked={trial} /> Offers a trial lesson</label>
+          <label className="flex items-center gap-2"><input type="checkbox" name="week" value="1" defaultChecked={thisWeek} /> Has open times in the next 7 days</label>
+        </div>
       </form>
 
       {tutors.length === 0 ? (
@@ -81,6 +104,9 @@ export default async function TutorsPage({ searchParams }: { searchParams: Searc
                   </div>
                 </div>
                 <p className="mt-3 font-medium">{t.headline}</p>
+                <p className="mt-1 text-sm text-brand-700">
+                  {t.slots[0] ? <>Next open time: <LocalTime iso={t.slots[0].startsAt.toISOString()} /></> : <span className="muted">No open times right now</span>}
+                </p>
                 <p className="muted mt-1 line-clamp-2">{t.bio}</p>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   {t.languages.map((l) => <span key={l.id} className="badge">{l.language} · {l.level === "NATIVE" ? "Native" : l.level}</span>)}

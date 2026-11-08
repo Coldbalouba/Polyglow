@@ -10,13 +10,14 @@ A selective, languages-only tutoring marketplace that treats tutors fairly and k
   4. submit an **AI-assisted lesson plan** (drafted with Claude, then edited by the tutor).
 
   An admin then verifies the resume, runs a live skill call, approves the lesson plan, and approves or requests changes.
-- **Students** browse and filter vetted tutors by language, price and rating, book open slots, pay, and review completed lessons.
+- **Students** browse and filter vetted tutors by language, price, rating, trial offer and availability this week, see each tutor's next open time, book open slots, pay, add lessons to their calendar (.ics or Google Calendar), and review completed lessons.
+- **Your account, your data.** Anyone can download their data or delete their account from the Account page, without emailing support.
 
 ## Stack
 
 Next.js 15 (App Router, server actions) · TypeScript · Tailwind CSS 4 · Prisma 6 + PostgreSQL · Stripe Connect · email over SMTP or Resend · Vitest · Docker Compose (app, Postgres, Caddy HTTPS, hourly jobs, daily backups) · optional Anthropic SDK for lesson-plan drafts.
 
-**To run it on your own server (about $5.50/month), follow [HOSTING.md](HOSTING.md).**
+**To run it on your own server (about $4–5.50/month), follow [HOSTING.md](HOSTING.md).**
 
 ## Run it locally
 

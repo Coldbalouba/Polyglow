@@ -7,7 +7,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Search
   return (
     <div className="mx-auto max-w-md card">
       <h1 className="h1 mb-6">Log in</h1>
-      <Flash error={param(sp, "error")} />
+      <Flash error={param(sp, "error")} notice={param(sp, "notice")} />
       <form action={login} className="space-y-4">
         <div><label className="label" htmlFor="email">Email</label><input className="input" id="email" name="email" type="email" required /></div>
         <div><label className="label" htmlFor="password">Password</label><input className="input" id="password" name="password" type="password" required /></div>

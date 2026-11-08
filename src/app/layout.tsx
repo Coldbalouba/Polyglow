@@ -29,6 +29,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               {user ? (
                 <>
                   <Link href="/dashboard" className="hover:text-brand-600">Dashboard</Link>
+                  <Link href="/account" className="hidden hover:text-brand-600 sm:inline">Account</Link>
                   <form action={logout}>
                     <button className="btn-secondary">Log out</button>
                   </form>
