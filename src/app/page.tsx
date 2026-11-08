@@ -1,103 +1,59 @@
-import Image from "next/image";
+import Link from "next/link";
+import { prisma } from "@/lib/db";
+import { formatMoney } from "@/lib/fees";
 
-export default function Home() {
+export default async function Home() {
+  const tutorCount = await prisma.tutorProfile.count({ where: { status: "APPROVED" } });
+  const example = 3000;
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <div className="space-y-16">
+      <section className="grid items-center gap-10 md:grid-cols-2">
+        <div className="space-y-6">
+          <span className="badge">Languages only · Vetted tutors · Fair fees</span>
+          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
+            Learn a language with tutors who are actually appreciated.
+          </h1>
+          <p className="text-lg text-stone-600">
+            Every TutConnect tutor sent a resume, passed a skill check and submitted a real lesson plan before
+            teaching a single class. And because we only take 1–5%, more of what you pay goes to your tutor.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <Link href="/tutors" className="btn">Browse {tutorCount > 0 ? `${tutorCount} ` : ""}tutors</Link>
+            <Link href="/signup?role=TUTOR" className="btn-secondary">Apply to teach</Link>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        <div className="card space-y-4">
+          <h2 className="h2">Where a {formatMoney(example)} lesson goes</h2>
+          <FeeRow label="Tutor's first 5 classes" fee={example * 0.01} payout={example * 0.99} rate="1%" />
+          <FeeRow label="From the 6th class on" fee={example * 0.05} payout={example * 0.95} rate="5%" />
+          <p className="muted">Students pay the tutor&apos;s listed price. No booking fees added on top.</p>
+        </div>
+      </section>
+
+      <section className="grid gap-6 md:grid-cols-3">
+        {[
+          ["1. Resume", "Tutors share their teaching and language background. We verify it."],
+          ["2. Skill check", "A methodology quiz, a written sample in the language, and a live call with our team."],
+          ["3. Lesson plan", "Tutors draft a real lesson plan with AI and make it their own, so there is always something to give."],
+        ].map(([title, body]) => (
+          <div key={title} className="card">
+            <h3 className="mb-2 font-semibold">{title}</h3>
+            <p className="muted">{body}</p>
+          </div>
+        ))}
+      </section>
+    </div>
+  );
+}
+
+function FeeRow({ label, fee, payout, rate }: { label: string; fee: number; payout: number; rate: string }) {
+  return (
+    <div className="flex items-center justify-between rounded-xl bg-stone-50 p-4">
+      <div>
+        <p className="font-medium">{label}</p>
+        <p className="muted">Platform fee {rate}: {formatMoney(Math.round(fee))}</p>
+      </div>
+      <p className="text-lg font-bold text-brand-700">{formatMoney(Math.round(payout))}<span className="muted"> to tutor</span></p>
     </div>
   );
 }
